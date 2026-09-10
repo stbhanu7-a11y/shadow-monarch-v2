@@ -1,0 +1,2339 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHADOW MONARCH SYSTEM v3.6 // COSMIC COMMAND</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        void: '#020205',
+                        'glass-bg': 'rgba(15, 15, 25, 0.75)',
+                        'cyan-glow': '#00F0FF',
+                        'violet-glow': '#9D4EDD',
+                    },
+                    boxShadow: {
+                        'neon-cyan': '0 0 15px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(0, 240, 255, 0.2)',
+                        'neon-violet': '0 0 15px rgba(157, 78, 221, 0.4), inset 0 0 10px rgba(157, 78, 221, 0.2)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #020205;
+            color: #e2e8f0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
+        }
+        
+        .davinci-grid {
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.05) 0%, transparent 60%),
+                linear-gradient(rgba(157, 78, 221, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(157, 78, 221, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        .glass-panel {
+            background: rgba(15, 15, 25, 0.55);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8), inset 0 0 12px rgba(0, 240, 255, 0.05);
+            border-radius: 12px;
+        }
+
+        .glass-panel-violet {
+            background: rgba(20, 10, 30, 0.55);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(157, 78, 221, 0.25);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8), inset 0 0 12px rgba(157, 78, 221, 0.08);
+            border-radius: 12px;
+        }
+
+        .btn-cosmic {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-cosmic:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.6);
+        }
+
+        .btn-cosmic:active {
+            transform: scale(0.95);
+        }
+
+        .accretion-spin {
+            animation: spin 20s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .aura-pulse {
+            animation: pulse 2.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { filter: drop-shadow(0 0 5px rgba(0,240,255,0.4)); }
+            100% { filter: drop-shadow(0 0 20px rgba(157,78,221,0.8)); }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(2, 2, 5, 0.8);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 240, 255, 0.3);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(157, 78, 221, 0.6);
+        }
+
+        .strike-completed {
+            text-decoration: line-through !important;
+            color: rgba(148, 163, 184, 0.55) !important;
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.15);
+        }
+
+        .active-mood {
+            border-color: #00F0FF !important;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+            background-color: rgba(0, 240, 255, 0.15) !important;
+        }
+
+        /* Local spaceship — centered over the water sphere only */
+        #waterWidget {
+            position: relative;
+            overflow: hidden;
+        }
+        #waterSphereWrap {
+            position: relative;
+            width: 7rem; /* w-28 */
+            height: 7rem;
+            flex-shrink: 0;
+        }
+        #localShipOverlay {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            transform: translateX(-50%);
+            pointer-events: none;
+            z-index: 30;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            overflow: visible;
+        }
+        #localShipOverlay.active {
+            opacity: 1;
+        }
+        #localShipModel {
+            transform: translateY(-160%);
+            transition: transform 1.05s cubic-bezier(0.19, 1, 0.22, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        #localShipOverlay.active #localShipModel {
+            transform: translateY(-55%);
+        }
+        #localShipBeam {
+            width: 14px;
+            height: 55px;
+            background: linear-gradient(to bottom, rgba(0,240,255,0.9), rgba(157,78,221,0.4), transparent);
+            filter: blur(3px);
+            margin-top: 1px;
+            animation: beamPulse 0.9s ease-in-out infinite alternate;
+        }
+        @keyframes beamPulse {
+            from { opacity: 0.55; }
+            to { opacity: 1; }
+        }
+
+        .period-btn.active {
+            background: rgba(0, 240, 255, 0.18) !important;
+            border-color: rgba(0, 240, 255, 0.55) !important;
+            color: #67e8f9 !important;
+        }
+    </style>
+</head>
+<body class="davinci-grid min-h-screen relative selection:bg-cyan-500 selection:text-black">
+
+    <canvas id="bgCanvas" class="fixed top-0 left-0 w-full h-full z-0 pointer-events-none"></canvas>
+
+    <!-- Hidden Audio Players -->
+    <audio id="customAlarmPlayer" loop></audio>
+    <audio id="bgMusicPlayer" loop></audio>
+
+    <!-- Main Container -->
+    <div class="relative z-10 max-w-[1700px] mx-auto px-4 py-4 flex flex-col gap-5">
+
+        <!-- Top Header Navigation -->
+        <header class="glass-panel p-4 flex flex-wrap items-center justify-between gap-4 border-b border-cyan-500/30">
+            <div class="flex items-center gap-3">
+                <div class="relative group cursor-pointer" onclick="app.toggleBeruModal()">
+                    <div class="w-12 h-12 rounded-full border border-cyan-400/50 flex items-center justify-center accretion-spin bg-cyan-950/40">
+                        <i data-lucide="disc" class="w-8 h-8 text-cyan-400"></i>
+                    </div>
+                    <div class="absolute inset-0 rounded-full aura-pulse"></div>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-violet-400 to-fuchsia-500 flex items-center gap-2">
+                        SYSTEM // SHADOW MONARCH <span class="text-xs px-2 py-0.5 rounded bg-cyan-950 border border-cyan-500/50 text-cyan-300 font-mono">v3.6</span>
+                    </h1>
+                    <p class="text-xs font-mono text-slate-400">SOLO LEVELING HUNTER INTERFACE & HEALTH CORE</p>
+                </div>
+            </div>
+
+            <!-- Date Selector -->
+            <div class="flex items-center gap-2 bg-black/40 p-1.5 rounded-lg border border-slate-800">
+                <button onclick="app.changeDate(-1)" class="p-1.5 hover:bg-slate-800 rounded text-cyan-400 transition" title="Previous Day">
+                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                </button>
+                <input type="date" id="universalDatePicker" onchange="app.onDatePicked(this.value)" class="bg-transparent text-cyan-300 font-mono text-sm px-2 py-1 outline-none border-b border-cyan-500/30 focus:border-cyan-400 cursor-pointer">
+                <button onclick="app.changeDate(1)" class="p-1.5 hover:bg-slate-800 rounded text-cyan-400 transition" title="Next Day">
+                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                </button>
+                <button onclick="app.jumpToToday()" class="px-2 py-1 text-xs font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 rounded hover:bg-cyan-900 transition ml-1">
+                    TODAY
+                </button>
+            </div>
+
+            <!-- Audio Controls & API Key -->
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 bg-black/50 px-3 py-1.5 rounded-full border border-violet-500/30">
+                    <button id="bgMusicBtn" onclick="app.toggleMusic()" class="text-violet-400 hover:text-violet-200 transition">
+                        <i data-lucide="music" class="w-4 h-4"></i>
+                    </button>
+                    <input type="range" id="bgMusicVol" min="0" max="1" step="0.05" value="0.3" oninput="app.setMusicVolume(this.value)" class="w-16 accent-violet-500 cursor-pointer">
+                    <label for="bgMusicFileInput" class="cursor-pointer text-[10px] font-mono text-cyan-300 bg-cyan-950/80 px-2 py-1 rounded border border-cyan-500/40 hover:bg-cyan-900 transition" title="Upload custom background music MP3/WAV">
+                        UPLOAD AUDIO
+                    </label>
+                    <input type="file" id="bgMusicFileInput" accept="audio/*" class="hidden" onchange="app.handleCustomBgMusic(event)">
+                </div>
+
+                <button onclick="app.openApiKeyModal()" class="px-3 py-1.5 bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/40 rounded-lg text-xs font-mono text-cyan-300 flex items-center gap-1.5">
+                    <i data-lucide="key" class="w-4 h-4"></i>
+                    <span>API KEY</span>
+                </button>
+
+                <button onclick="app.toggleBeruModal()" class="btn-cosmic px-3 py-1.5 bg-gradient-to-r from-violet-900/60 to-purple-900/60 hover:from-violet-800 hover:to-purple-800 border border-violet-500/50 rounded-lg text-xs font-mono flex items-center gap-2 text-violet-200">
+                    <i data-lucide="bot" class="w-4 h-4 text-purple-400"></i>
+                    <span>BERU AI</span>
+                </button>
+
+                <button onclick="app.openSettings()" class="p-2 bg-slate-900/80 hover:bg-slate-800 border border-slate-700 rounded-lg text-slate-300 transition" title="System Settings">
+                    <i data-lucide="settings" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Dashboard 3-Column Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+            <!-- LEFT COLUMN: STATS + HYDRATION + MOOD -->
+            <div class="lg:col-span-3 flex flex-col gap-5">
+                <div class="glass-panel p-4 flex flex-col gap-3 relative overflow-hidden">
+                    <div class="flex justify-between items-center border-b border-cyan-500/20 pb-2">
+                        <h2 class="text-sm font-bold font-mono tracking-wider text-cyan-400 flex items-center gap-2">
+                            <i data-lucide="shield" class="w-4 h-4"></i> LORD'S STATS
+                        </h2>
+                        <button onclick="app.openStatsModal()" class="text-xs text-slate-400 hover:text-cyan-300 font-mono">[EDIT]</button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 font-mono text-xs">
+                        <div class="bg-black/40 p-2 rounded border border-slate-800">
+                            <div class="text-slate-400 text-[10px]">BODY WEIGHT</div>
+                            <div id="statWeight" class="text-cyan-300 font-bold text-sm">74.5 kg</div>
+                        </div>
+                        <div class="bg-black/40 p-2 rounded border border-slate-800">
+                            <div class="text-slate-400 text-[10px]">HEIGHT / BMI</div>
+                            <div id="statBMI" class="text-cyan-300 font-bold text-sm">180cm (23.0)</div>
+                        </div>
+                        <div class="bg-black/40 p-2 rounded border border-slate-800">
+                            <div class="text-slate-400 text-[10px]">EXAM PERCENTILE</div>
+                            <div id="statExam" class="text-violet-300 font-bold text-sm">98.5th %</div>
+                        </div>
+                        <div class="bg-black/40 p-2 rounded border border-slate-800">
+                            <div class="text-slate-400 text-[10px]">TEST SCORE</div>
+                            <div id="statTest" class="text-violet-300 font-bold text-sm">94/100</div>
+                        </div>
+                        <div class="bg-black/40 p-2 rounded border border-slate-800">
+                            <div class="text-slate-400 text-[10px]">CONSISTENCY %</div>
+                            <div id="statConsistency" class="text-emerald-400 font-bold text-sm">92%</div>
+                        </div>
+                        <div class="bg-black/40 p-2 rounded border border-slate-800">
+                            <div class="text-slate-400 text-[10px]">STREAK</div>
+                            <div id="statStreak" class="text-amber-400 font-bold text-sm">🔥 14 Days</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COSMIC HYDRATION (ship confined over the water sphere) -->
+                <div id="waterWidget" class="glass-panel p-4 flex flex-col gap-3">
+                    <div class="flex justify-between items-center border-b border-cyan-500/20 pb-2 relative z-10">
+                        <h2 class="text-sm font-bold font-mono tracking-wider text-cyan-400 flex items-center gap-2">
+                            <i data-lucide="droplet" class="w-4 h-4"></i> COSMIC HYDRATION
+                        </h2>
+                        <span id="waterText" class="text-xs font-mono text-cyan-300">1750 / 3000 ml</span>
+                    </div>
+
+                    <div class="flex items-center justify-around my-2 relative z-10">
+                        <!-- Sphere + ship overlay centered on sphere -->
+                        <div id="waterSphereWrap">
+                            <div id="localShipOverlay">
+                                <div id="localShipModel">
+                                    <svg class="w-9 h-9 text-cyan-400 drop-shadow-[0_0_18px_rgba(0,240,255,0.95)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                                    </svg>
+                                    <div id="localShipBeam"></div>
+                                </div>
+                            </div>
+                            <div class="relative w-28 h-28 rounded-full bg-slate-950 border-2 border-cyan-500/40 overflow-hidden shadow-[0_0_20px_rgba(0,240,255,0.2)] flex items-end justify-center">
+                                <div id="planetWaterFill" class="w-full bg-gradient-to-t from-cyan-600 via-cyan-400 to-cyan-300/80 transition-all duration-700 ease-out" style="height: 58%;"></div>
+                                <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-60" viewBox="0 0 100 100">
+                                    <ellipse cx="50" cy="50" rx="45" ry="12" fill="none" stroke="#00F0FF" stroke-width="1.5" transform="rotate(-20 50 50)"></ellipse>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-2">
+                            <button onclick="app.addWater(250)" class="btn-cosmic px-3 py-2 bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/50 rounded-lg text-xs font-mono text-cyan-300 flex items-center gap-1.5">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> +250 ml
+                            </button>
+                            <button onclick="app.addWater(500)" class="btn-cosmic px-3 py-2 bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/50 rounded-lg text-xs font-mono text-cyan-300 flex items-center gap-1.5">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> +500 ml
+                            </button>
+                            <button onclick="app.resetWater()" class="text-[10px] font-mono text-slate-500 hover:text-slate-300 text-center mt-1">RESET</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-4 flex flex-col gap-3">
+                    <h2 class="text-sm font-bold font-mono tracking-wider text-violet-400 border-b border-violet-500/20 pb-2 flex items-center gap-2">
+                        <i data-lucide="smile" class="w-4 h-4"></i> MOOD MATRIX
+                    </h2>
+                    
+                    <div class="grid grid-cols-4 gap-1.5 text-lg">
+                        <button onclick="app.setMood('😈 Mischievous')" title="😈 Mischievous" class="mood-btn p-2 rounded bg-black/40 border border-slate-800 hover:border-purple-500 hover:bg-purple-950/30 transition text-center">😈</button>
+                        <button onclick="app.setMood('👿 Purple Devil')" title="👿 Purple Devil" class="mood-btn p-2 rounded bg-black/40 border border-slate-800 hover:border-violet-500 hover:bg-violet-950/40 transition text-center">👿</button>
+                        <button onclick="app.setMood('⚡ Unstoppable')" title="⚡ Unstoppable" class="mood-btn p-2 rounded bg-black/40 border border-slate-800 hover:border-amber-400 hover:bg-amber-950/30 transition text-center">⚡</button>
+                        <button onclick="app.setMood('🔥 Focused')" title="🔥 Focused" class="mood-btn p-2 rounded bg-black/40 border border-slate-800 hover:border-orange-400 hover:bg-orange-950/30 transition text-center">🔥</button>
+                        <button onclick="app.setMood('😂 Full of Laugh')" title="😂 Full of Laugh" class="mood-btn p-2 rounded bg-black/40 border border-slate-800 hover:border-yellow-400 hover:bg-yellow-950/30 transition text-center">😂</button>
+                        <button onclick="app.setMood('😄 Pure Joy')" title="😄 Pure Joy" class="mood-btn p-2 rounded bg-black/40 border border-slate-800 hover:border-emerald-400 hover:bg-emerald-950/30 transition text-center">😄</button>
+                        <button onclick="app.setMood('🥳 Victorious')" title="🥳 Victorious" class="mood-btn p-2 rounded bg-black/40 border border-slate-800 hover:border-purple-400 hover:bg-purple-950/30 transition text-center">🥳</button>
+                        <button onclick="app.setMood('😐 Neutral')" title="😐 Neutral" class="mood-btn p-2 rounded bg-black/40 border border-slate-800 hover:border-slate-400 hover:bg-slate-800/30 transition text-center">😐</button>
+                        <button onclick="app.setMood('🧘 Calm')" title="🧘 Calm" class="mood-btn p-2 rounded bg-black/40 border border-slate-800 hover:border-teal-400 hover:bg-teal-950/30 transition text-center">🧘</button>
+                        <button onclick="app.setMood('🧐 Thoughtful')" title="🧐 Thoughtful" class="mood-btn p-2 rounded bg-black/40 border border-slate-800 hover:border-blue-400 hover:bg-blue-950/30 transition text-center">🧐</button>
+                        <button onclick="app.setMood('😔 Sad')" title="😔 Sad" class="mood-btn p-2 rounded bg-black/40 border border-slate-800 hover:border-indigo-400 hover:bg-indigo-950/30 transition text-center">😔</button>
+                        <button onclick="app.setMood('😮‍💨 Exhausted')" title="😮‍💨 Exhausted" class="mood-btn p-2 rounded bg-black/40 border border-slate-800 hover:border-slate-500 hover:bg-slate-900/30 transition text-center">😮‍💨</button>
+                        <button onclick="app.setMood('🌑 Void')" title="🌑 Void" class="mood-btn p-2 rounded bg-black/40 border border-slate-800 hover:border-violet-600 hover:bg-violet-950/30 transition text-center">🌑</button>
+                    </div>
+
+                    <div id="activeMoodDisplay" class="text-xs font-mono text-cyan-300 text-center py-1 bg-cyan-950/30 rounded border border-cyan-500/20">
+                        Selected: 🔥 Focused
+                    </div>
+
+                    <textarea id="journalInput" oninput="app.saveJournal(this.value)" placeholder="Monarch's Reflection & Daily Logs..." class="w-full h-20 bg-black/60 border border-slate-800 rounded-lg p-2 text-xs font-mono text-slate-200 outline-none focus:border-violet-500 transition resize-none"></textarea>
+                </div>
+            </div>
+
+            <!-- CENTER COLUMN: QUEST ENGINE & WORKOUT -->
+            <div class="lg:col-span-6 flex flex-col gap-5">
+
+                <div class="glass-panel p-5 flex flex-col gap-4">
+                    <div class="flex justify-between items-center border-b border-cyan-500/20 pb-3">
+                        <div>
+                            <h2 class="text-base font-bold font-mono tracking-wider text-cyan-400 flex items-center gap-2">
+                                <i data-lucide="check-square" class="w-5 h-5"></i> DAILY SYSTEM QUESTS
+                            </h2>
+                            <p class="text-xs font-mono text-slate-400">Complete tasks to accumulate Shadow EXP</p>
+                        </div>
+                        <span id="questRatioText" class="text-xs font-mono bg-cyan-950 px-2 py-1 rounded text-cyan-300 border border-cyan-500/30">0 / 0 Completed</span>
+                    </div>
+
+                    <form onsubmit="app.addQuest(event)" class="flex gap-2">
+                        <input type="text" id="newQuestInput" placeholder="Enter new quest or habit protocol..." class="flex-grow bg-black/50 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-cyan-200 outline-none focus:border-cyan-400 transition">
+                        <select id="questCategory" class="bg-black/50 border border-slate-800 rounded-lg px-2 py-2 text-xs font-mono text-slate-300 outline-none">
+                            <option value="Academic">Academic</option>
+                            <option value="Health">Health</option>
+                            <option value="System">System</option>
+                            <option value="Mindset">Mindset</option>
+                        </select>
+                        <button type="submit" class="btn-cosmic px-4 py-2 bg-cyan-950 border border-cyan-500/50 rounded-lg text-xs font-mono text-cyan-300 flex items-center gap-1">
+                            <i data-lucide="plus" class="w-4 h-4"></i> ADD
+                        </button>
+                    </form>
+
+                    <div id="questList" class="flex flex-col gap-2 max-h-[260px] overflow-y-auto pr-1"></div>
+                </div>
+
+                <div class="glass-panel-violet p-5 flex flex-col gap-4 relative">
+                    <div class="flex justify-between items-center border-b border-violet-500/20 pb-3">
+                        <div>
+                            <h2 class="text-base font-bold font-mono tracking-wider text-purple-300 flex items-center gap-2">
+                                <i data-lucide="dumbbell" class="w-5 h-5 text-purple-400"></i> PHYSICAL RITUAL & WORKOUT CORE
+                            </h2>
+                            <p id="workoutDayTitle" class="text-xs font-mono text-violet-400">DAY 1 // CHEST & TRICEPS PROTOCOL</p>
+                        </div>
+                        <button onclick="app.toggleBeruModal('workout')" class="btn-cosmic px-3 py-1.5 bg-purple-950 hover:bg-purple-900 border border-purple-500/50 rounded text-xs font-mono text-purple-300 flex items-center gap-1.5">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> REWRITE WITH BERU
+                        </button>
+                    </div>
+
+                    <div class="flex gap-1 overflow-x-auto pb-1 text-xs font-mono">
+                        <button onclick="app.setWorkoutDay(1)" id="wTab1" class="px-3 py-1.5 rounded border border-purple-500/40 bg-purple-950/60 text-purple-200">D1: Chest/Tri</button>
+                        <button onclick="app.setWorkoutDay(2)" id="wTab2" class="px-3 py-1.5 rounded border border-slate-800 bg-black/40 text-slate-400 hover:text-slate-200">D2: Back/Bi</button>
+                        <button onclick="app.setWorkoutDay(3)" id="wTab3" class="px-3 py-1.5 rounded border border-slate-800 bg-black/40 text-slate-400 hover:text-slate-200">D3: Legs/Core</button>
+                        <button onclick="app.setWorkoutDay(4)" id="wTab4" class="px-3 py-1.5 rounded border border-slate-800 bg-black/40 text-slate-400 hover:text-slate-200">D4: Shoulders</button>
+                        <button onclick="app.setWorkoutDay(5)" id="wTab5" class="px-3 py-1.5 rounded border border-slate-800 bg-black/40 text-slate-400 hover:text-slate-200">D5: Full Body</button>
+                        <button onclick="app.setWorkoutDay(6)" id="wTab6" class="px-3 py-1.5 rounded border border-slate-800 bg-black/40 text-slate-400 hover:text-slate-200">Weekend: Rest</button>
+                    </div>
+
+                    <form onsubmit="app.addExercise(event)" class="flex flex-wrap gap-2 items-end">
+                        <div class="flex flex-col gap-0.5 flex-grow min-w-[140px]">
+                            <label class="text-[9px] font-mono text-violet-400">EXERCISE</label>
+                            <input type="text" id="newExerciseName" placeholder="e.g. Bench Press" class="w-full bg-black/50 border border-slate-800 rounded-lg px-2 py-1.5 text-xs font-mono text-purple-200 outline-none focus:border-purple-400 transition">
+                        </div>
+                        <div class="flex flex-col gap-0.5 w-16">
+                            <label class="text-[9px] font-mono text-violet-400">SETS</label>
+                            <input type="number" id="newExerciseSets" min="1" max="20" value="3" class="w-full bg-black/50 border border-slate-800 rounded-lg px-2 py-1.5 text-xs font-mono text-purple-200 outline-none focus:border-purple-400 transition text-center">
+                        </div>
+                        <div class="flex flex-col gap-0.5 w-20">
+                            <label class="text-[9px] font-mono text-violet-400">REPS</label>
+                            <input type="text" id="newExerciseReps" placeholder="8-12" value="10" class="w-full bg-black/50 border border-slate-800 rounded-lg px-2 py-1.5 text-xs font-mono text-purple-200 outline-none focus:border-purple-400 transition text-center">
+                        </div>
+                        <button type="submit" class="btn-cosmic px-3 py-1.5 bg-purple-950 border border-purple-500/50 rounded-lg text-xs font-mono text-purple-200 flex items-center gap-1">
+                            <span class="text-sm leading-none">＋</span> ADD
+                        </button>
+                    </form>
+
+                    <div id="workoutExerciseList" class="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1"></div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: TIME SUITE & LIVE ANALYTICS -->
+            <div class="lg:col-span-3 flex flex-col gap-5">
+
+                <div class="glass-panel p-4 flex flex-col gap-4">
+                    <div class="flex justify-between items-center border-b border-cyan-500/20 pb-2">
+                        <h2 class="text-sm font-bold font-mono tracking-wider text-cyan-400 flex items-center gap-2">
+                            <i data-lucide="clock" class="w-4 h-4"></i> DIGITAL TIME SUITE
+                        </h2>
+                        <div class="flex gap-1 text-[10px] font-mono">
+                            <button onclick="app.setTimeTab('clock')" id="timeTabClock" class="px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40">CLOCK</button>
+                            <button onclick="app.setTimeTab('stopwatch')" id="timeTabSW" class="px-2 py-0.5 rounded bg-black text-slate-400">STOPWATCH</button>
+                            <button onclick="app.setTimeTab('timer')" id="timeTabTimer" class="px-2 py-0.5 rounded bg-black text-slate-400">TIMER</button>
+                        </div>
+                    </div>
+
+                    <!-- Clock -->
+                    <div id="timeSuiteClock" class="flex flex-col items-center justify-center py-2 bg-black/40 rounded-lg border border-slate-800">
+                        <div id="digitalClock" class="text-3xl font-black font-mono text-cyan-300 tracking-wider drop-shadow-[0_0_12px_rgba(0,240,255,0.6)]">
+                            00:00:00 AM
+                        </div>
+                        <div id="clockSubDate" class="text-[10px] font-mono text-slate-400 mt-1">MONDAY, SEPT 7, 2026</div>
+
+                        <div class="flex flex-col gap-2 mt-3 w-full px-3">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <div class="flex flex-col items-center">
+                                    <span class="text-[9px] font-mono text-slate-500">H</span>
+                                    <input type="number" id="alarmHourInput" min="1" max="12" value="12" class="w-10 bg-black border border-slate-800 text-center text-xs font-mono text-cyan-300 p-1 rounded">
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <span class="text-[9px] font-mono text-slate-500">M</span>
+                                    <input type="number" id="alarmMinInput" min="0" max="59" value="0" class="w-10 bg-black border border-slate-800 text-center text-xs font-mono text-cyan-300 p-1 rounded">
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <span class="text-[9px] font-mono text-slate-500">S</span>
+                                    <input type="number" id="alarmSecInput" min="0" max="59" value="0" class="w-10 bg-black border border-slate-800 text-center text-xs font-mono text-cyan-300 p-1 rounded">
+                                </div>
+                                <div class="flex flex-col items-center self-end">
+                                    <div class="flex rounded overflow-hidden border border-cyan-500/40">
+                                        <button type="button" id="alarmAmBtn" onclick="app.setAlarmPeriod('AM')" class="px-2 py-1 text-[10px] font-mono bg-cyan-950 text-cyan-300">AM</button>
+                                        <button type="button" id="alarmPmBtn" onclick="app.setAlarmPeriod('PM')" class="px-2 py-1 text-[10px] font-mono bg-black text-slate-400">PM</button>
+                                    </div>
+                                </div>
+                                <button onclick="app.setAlarm()" class="px-2 py-1 bg-cyan-950 border border-cyan-500/40 text-[10px] font-mono text-cyan-300 rounded hover:bg-cyan-900 self-end">
+                                    SET ALARM
+                                </button>
+                                <button onclick="app.stopAlarmSound()" id="stopAlarmBtn" class="hidden px-2 py-1 bg-red-950 border border-red-500/50 text-[10px] font-mono text-red-300 rounded hover:bg-red-900 animate-pulse self-end">
+                                    STOP
+                                </button>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <select id="alarmSoundSelect" onchange="app.handleAlarmSoundChange(this.value)" class="bg-black border border-slate-800 rounded text-[10px] font-mono text-slate-300 p-1 flex-grow">
+                                    <option value="scifi">Sci-Fi Synth Pulse</option>
+                                    <option value="bell">Cosmic Chime</option>
+                                    <option value="alert">Warning Siren</option>
+                                    <option value="custom">Custom Uploaded File</option>
+                                </select>
+                                <label for="alarmFileInput" class="cursor-pointer text-[10px] font-mono text-cyan-300 bg-cyan-950 px-2 py-1 rounded border border-cyan-500/40 hover:bg-cyan-900" title="Upload Audio File for Alarm">
+                                    UPLOAD
+                                </label>
+                                <input type="file" id="alarmFileInput" accept="audio/*" class="hidden" onchange="app.handleCustomAlarmFile(event)">
+                            </div>
+                        </div>
+                        <div id="alarmStatusText" class="text-[10px] font-mono text-violet-400 mt-2">No Active Alarm</div>
+                    </div>
+
+                    <!-- Stopwatch -->
+                    <div id="timeSuiteSW" class="hidden flex-col items-center justify-center py-2 bg-black/40 rounded-lg border border-slate-800">
+                        <div id="stopwatchDisplay" class="text-3xl font-black font-mono text-purple-300 tracking-wider">
+                            00:00:00.00
+                        </div>
+                        <div class="flex gap-2 my-2">
+                            <button onclick="app.startStopwatch()" class="px-3 py-1 bg-purple-950 border border-purple-500/40 text-xs font-mono text-purple-200 rounded">START</button>
+                            <button onclick="app.pauseStopwatch()" class="px-3 py-1 bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300 rounded">PAUSE</button>
+                            <button onclick="app.resetStopwatch()" class="px-3 py-1 bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300 rounded">RESET</button>
+                        </div>
+                    </div>
+
+                    <!-- Timer -->
+                    <div id="timeSuiteTimer" class="hidden flex-col items-center justify-center py-2 bg-black/40 rounded-lg border border-slate-800">
+                        <div id="timerDisplay" class="text-3xl font-black font-mono text-amber-300 tracking-wider">
+                            00:15:00
+                        </div>
+                        <div class="flex gap-1.5 items-center my-2 flex-wrap justify-center">
+                            <div class="flex flex-col items-center">
+                                <span class="text-[9px] font-mono text-slate-500">H</span>
+                                <input type="number" id="timerHourInput" min="0" max="99" value="0" class="w-11 bg-black border border-slate-800 text-center text-xs font-mono text-amber-300 p-1 rounded">
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-[9px] font-mono text-slate-500">M</span>
+                                <input type="number" id="timerMinInput" min="0" max="59" value="15" class="w-11 bg-black border border-slate-800 text-center text-xs font-mono text-amber-300 p-1 rounded">
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-[9px] font-mono text-slate-500">S</span>
+                                <input type="number" id="timerSecInput" min="0" max="59" value="0" class="w-11 bg-black border border-slate-800 text-center text-xs font-mono text-amber-300 p-1 rounded">
+                            </div>
+                            <button onclick="app.startTimer()" class="px-3 py-1 bg-amber-950 border border-amber-500/40 text-xs font-mono text-amber-300 rounded self-end">START</button>
+                            <button onclick="app.pauseTimer()" class="px-3 py-1 bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300 rounded self-end">PAUSE</button>
+                            <button onclick="app.resetTimer()" class="px-3 py-1 bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300 rounded self-end">RESET</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Analytics Charts (small ones) -->
+                <div class="glass-panel p-4 flex flex-col gap-3">
+                    <h2 class="text-sm font-bold font-mono tracking-wider text-cyan-400 border-b border-cyan-500/20 pb-2 flex items-center gap-2">
+                        <i data-lucide="bar-chart-2" class="w-4 h-4"></i> LIVE ANALYTICS
+                    </h2>
+
+                    <!-- Dual concentric rings: inner blue = quests, outer red = workouts -->
+                    <div class="relative w-full h-40" style="min-height:160px;">
+                        <canvas id="completionChart" style="width:100%;height:100%;"></canvas>
+                        <div id="completionCenterLabel" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <span class="text-[10px] font-mono font-bold leading-tight" style="color:#00B4FF;">Q 0%</span>
+                            <span class="text-[10px] font-mono font-bold leading-tight" style="color:#FFEE00;">W 0%</span>
+                        </div>
+                    </div>
+                    <div class="flex justify-center gap-4 text-[10px] font-mono -mt-1">
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:#00B4FF;"></span>Quests</span>
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:#FFEE00;"></span>Workout</span>
+                    </div>
+
+                    <!-- Dual line: blue quests, yellow workout (this week) -->
+                    <div class="relative w-full h-36" style="min-height:140px;">
+                        <canvas id="weeklyChart" style="width:100%;height:100%;"></canvas>
+                    </div>
+                    <div class="flex justify-center gap-4 text-[10px] font-mono -mt-1">
+                        <span class="flex items-center gap-1"><span class="w-2 h-0.5" style="background:#00B4FF;"></span>Quests %</span>
+                        <span class="flex items-center gap-1"><span class="w-2 h-0.5" style="background:#FFEE00;"></span>Workout %</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BIG LANDSCAPE ANALYTICS GRAPH (full width) -->
+        <div class="glass-panel p-5 flex flex-col gap-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-500/20 pb-3">
+                <h2 class="text-base font-bold font-mono tracking-wider text-cyan-400 flex items-center gap-2">
+                    <i data-lucide="activity" class="w-5 h-5"></i> LONG-RANGE COMPLETION MATRIX
+                </h2>
+                <div class="flex items-center gap-2">
+                    <button onclick="app.setBigPeriod('weekly')" id="periodWeekly" class="period-btn active px-3 py-1.5 text-xs font-mono rounded border border-cyan-500/40 bg-cyan-950/40 text-cyan-300">WEEKLY</button>
+                    <button onclick="app.setBigPeriod('monthly')" id="periodMonthly" class="period-btn px-3 py-1.5 text-xs font-mono rounded border border-slate-700 bg-black/40 text-slate-400 hover:text-slate-200">MONTHLY</button>
+                    <button onclick="app.setBigPeriod('yearly')" id="periodYearly" class="period-btn px-3 py-1.5 text-xs font-mono rounded border border-slate-700 bg-black/40 text-slate-400 hover:text-slate-200">YEARLY</button>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between gap-3">
+                <button onclick="app.shiftBigPeriod(-1)" class="p-2 rounded-lg border border-slate-700 bg-black/50 text-cyan-400 hover:bg-slate-800 transition" title="Previous">
+                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                </button>
+                <div id="bigPeriodLabel" class="text-sm font-mono text-violet-300 tracking-wider text-center flex-grow">
+                    WEEK OF SEP 07 – SEP 13, 2026
+                </div>
+                <button onclick="app.shiftBigPeriod(1)" class="p-2 rounded-lg border border-slate-700 bg-black/50 text-cyan-400 hover:bg-slate-800 transition" title="Next">
+                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="relative w-full h-64 md:h-72" style="min-height:256px;">
+                <canvas id="bigLandscapeChart" style="width:100%;height:100%;"></canvas>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-6 text-xs font-mono">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full shadow-[0_0_10px_#00B4FF]" style="background:#00B4FF;"></span>
+                    <span style="color:#00B4FF;">Quest Completion %</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full shadow-[0_0_10px_#FFEE00]" style="background:#FFEE00;"></span>
+                    <span style="color:#FFEE00;">Workout Completion %</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Key Modal - Multi-provider -->
+    <div id="apiKeyModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-md w-full p-6 flex flex-col gap-4 border border-cyan-500/50">
+            <div class="flex justify-between items-center border-b border-cyan-500/30 pb-3">
+                <h3 class="text-base font-extrabold font-mono text-cyan-300 flex items-center gap-2">
+                    <i data-lucide="key" class="w-5 h-5"></i> API KEY CONFIGURATION
+                </h3>
+                <button onclick="app.closeApiKeyModal()" class="text-slate-400 hover:text-white font-mono">✕</button>
+            </div>
+            
+            <p class="text-xs font-mono text-slate-300 leading-relaxed">
+                Choose any LLM provider and enter its API key to activate <strong class="text-purple-300">Beru AI Advisor</strong>. Supports Gemini, Claude, ChatGPT (OpenAI), Grok (xAI) and any OpenAI-compatible endpoint. Keys are saved locally.
+            </p>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-[10px] font-mono text-cyan-400">PROVIDER</label>
+                <select id="aiProviderSelect" onchange="app.onProviderChange()" class="w-full bg-black border border-slate-800 p-2 rounded text-xs font-mono text-cyan-300 outline-none focus:border-cyan-400">
+                    <option value="gemini">Google Gemini (all versions)</option>
+                    <option value="openai">OpenAI / ChatGPT</option>
+                    <option value="anthropic">Anthropic Claude</option>
+                    <option value="xai">xAI Grok</option>
+                    <option value="custom">Custom OpenAI-compatible</option>
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-1" id="customBaseUrlWrap" style="display:none;">
+                <label class="text-[10px] font-mono text-cyan-400">BASE URL (e.g. https://api.example.com/v1)</label>
+                <input type="text" id="customBaseUrlInput" placeholder="https://api.openai.com/v1" class="w-full bg-black border border-slate-800 p-2 rounded text-xs font-mono text-cyan-300 outline-none focus:border-cyan-400">
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-[10px] font-mono text-cyan-400">MODEL (optional override)</label>
+                <input type="text" id="aiModelInput" placeholder="Leave blank for default" class="w-full bg-black border border-slate-800 p-2 rounded text-xs font-mono text-cyan-300 outline-none focus:border-cyan-400">
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-[10px] font-mono text-cyan-400">API KEY</label>
+                <input type="password" id="geminiApiKeyInput" placeholder="Paste your API key here..." class="w-full bg-black border border-slate-800 p-2 rounded text-xs font-mono text-cyan-300 outline-none focus:border-cyan-400">
+            </div>
+
+            <button onclick="app.saveApiKey()" class="btn-cosmic w-full py-2 bg-cyan-950 border border-cyan-500/50 text-xs font-mono text-cyan-300 rounded-lg mt-2">
+                SAVE & TEST CONNECTION
+            </button>
+        </div>
+    </div>
+
+    <!-- Beru AI Modal -->
+    <div id="beruModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-panel-violet max-w-xl w-full p-6 flex flex-col gap-4 border border-purple-500/50 shadow-[0_0_50px_rgba(157,78,221,0.3)]">
+            <div class="flex justify-between items-center border-b border-purple-500/30 pb-3">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="bot" class="w-6 h-6 text-purple-400"></i>
+                    <h3 class="text-base font-extrabold font-mono text-purple-300 tracking-wider">BERU // SHADOW ADVISOR</h3>
+                </div>
+                <button onclick="app.toggleBeruModal()" class="text-slate-400 hover:text-white font-mono">✕</button>
+            </div>
+            
+            <div class="text-[10px] font-mono text-emerald-300 bg-emerald-950/30 border border-emerald-500/20 rounded px-2 py-1">
+                AI CONTROL: stats • workouts • quests • hydration • mood • journal • dates
+            </div>
+            <div id="beruChatBox" class="bg-black/60 border border-slate-800 rounded-lg p-3 h-64 overflow-y-auto font-mono text-xs text-purple-200 flex flex-col gap-2">
+                <div class="text-slate-500 italic">[Beru System Online. Ask for workout adjustments, motivation, or daily quest protocols...]</div>
+            </div>
+
+            <div class="flex gap-2">
+                <input type="text" id="beruInput" onkeydown="if(event.key==='Enter') app.sendBeruMessage()" placeholder="Command Beru..." class="flex-grow bg-black border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-purple-200 outline-none focus:border-purple-500">
+                <button onclick="app.sendBeruMessage()" class="btn-cosmic px-4 py-2 bg-purple-950 border border-purple-500/50 text-xs font-mono text-purple-200 rounded-lg">
+                    SEND
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Lord's Stats Modal -->
+    <div id="statsModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-md w-full p-6 flex flex-col gap-4 border border-cyan-500/50">
+            <div class="flex justify-between items-center border-b border-cyan-500/30 pb-3">
+                <h3 class="text-base font-extrabold font-mono text-cyan-300">UPDATE LORD'S STATS</h3>
+                <button onclick="app.closeStatsModal()" class="text-slate-400 hover:text-white font-mono">✕</button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3 text-xs font-mono">
+                <div>
+                    <label class="text-slate-400 block mb-1">Rank Title</label>
+                    <input type="text" id="editRank" value="S-RANK MONARCH" class="w-full bg-black border border-slate-800 p-2 rounded text-cyan-300">
+                </div>
+                <div>
+                    <label class="text-slate-400 block mb-1">Weight (kg)</label>
+                    <input type="text" id="editWeight" value="74.5 kg" class="w-full bg-black border border-slate-800 p-2 rounded text-cyan-300">
+                </div>
+                <div>
+                    <label class="text-slate-400 block mb-1">Height / BMI</label>
+                    <input type="text" id="editBMI" value="180cm (23.0)" class="w-full bg-black border border-slate-800 p-2 rounded text-cyan-300">
+                </div>
+                <div>
+                    <label class="text-slate-400 block mb-1">Exam %tile</label>
+                    <input type="text" id="editExam" value="98.5th %" class="w-full bg-black border border-slate-800 p-2 rounded text-violet-300">
+                </div>
+                <div>
+                    <label class="text-slate-400 block mb-1">Test Score</label>
+                    <input type="text" id="editTest" value="94/100" class="w-full bg-black border border-slate-800 p-2 rounded text-violet-300">
+                </div>
+                <div>
+                    <label class="text-slate-400 block mb-1">Streak Days</label>
+                    <input type="text" id="editStreak" value="14" class="w-full bg-black border border-slate-800 p-2 rounded text-amber-300">
+                </div>
+                <div>
+                    <label class="text-slate-400 block mb-1">Consistency %</label>
+                    <input type="text" id="editConsistency" value="92%" class="w-full bg-black border border-slate-800 p-2 rounded text-emerald-300">
+                </div>
+            </div>
+
+            <button onclick="app.saveStats()" class="btn-cosmic w-full py-2 bg-cyan-950 border border-cyan-500/50 text-xs font-mono text-cyan-300 rounded-lg mt-2">
+                SAVE STATS
+            </button>
+        </div>
+    </div>
+
+    <!-- Application Core Engine -->
+    <script>
+        // Black-hole + particle field background
+        (function initCanvas() {
+            const canvas = document.getElementById('bgCanvas');
+            const ctx = canvas.getContext('2d');
+            let width = canvas.width = window.innerWidth;
+            let height = canvas.height = window.innerHeight;
+            let cx = width / 2, cy = height / 2;
+            let angle = 0;
+
+            window.addEventListener('resize', () => {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+                cx = width / 2; cy = height / 2;
+            });
+
+            // Blinking background stars
+            const stars = Array.from({ length: 140 }, () => ({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                r: Math.random() * 1.4 + 0.3,
+                a: Math.random(),
+                da: (Math.random() * 0.02 + 0.005) * (Math.random() < 0.5 ? 1 : -1),
+                color: Math.random() < 0.5 ? '0,240,255' : '244,63,94'
+            }));
+
+            // Orbiting blue/red accretion particles
+            const particles = Array.from({ length: 180 }, () => {
+                const ring = Math.random();
+                return {
+                    theta: Math.random() * Math.PI * 2,
+                    radius: 40 + ring * 160 + Math.random() * 30,
+                    speed: 0.004 + (1 - ring) * 0.012 + Math.random() * 0.004,
+                    size: 1 + Math.random() * 2.2,
+                    isBlue: Math.random() < 0.55,
+                    wobble: Math.random() * Math.PI * 2
+                };
+            });
+
+            // Shooting stars
+            const shooters = [];
+            function spawnShooter() {
+                shooters.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height * 0.5,
+                    vx: 4 + Math.random() * 6,
+                    vy: 2 + Math.random() * 3,
+                    life: 1,
+                    len: 40 + Math.random() * 60,
+                    isBlue: Math.random() < 0.6
+                });
+            }
+            setInterval(() => { if (shooters.length < 4) spawnShooter(); }, 1800);
+
+            function draw() {
+                ctx.fillStyle = 'rgba(2, 2, 5, 0.35)';
+                ctx.fillRect(0, 0, width, height);
+
+                // Soft radial glow behind black hole
+                const glow = ctx.createRadialGradient(cx, cy, 10, cx, cy, 220);
+                glow.addColorStop(0, 'rgba(255,255,255,0.18)');
+                glow.addColorStop(0.15, 'rgba(0,240,255,0.08)');
+                glow.addColorStop(0.4, 'rgba(244,63,94,0.05)');
+                glow.addColorStop(1, 'transparent');
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 220, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Orbiting particles (blue + red accretion disk)
+                angle += 0.003;
+                particles.forEach(p => {
+                    p.theta += p.speed;
+                    p.wobble += 0.02;
+                    const r = p.radius + Math.sin(p.wobble) * 6;
+                    const x = cx + Math.cos(p.theta + angle * 0.3) * r;
+                    const y = cy + Math.sin(p.theta + angle * 0.3) * r * 0.55; // flattened disk
+                    const col = p.isBlue ? '0,240,255' : '244,63,94';
+                    ctx.beginPath();
+                    ctx.arc(x, y, p.size, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(${col}, ${0.35 + Math.random() * 0.4})`;
+                    ctx.fill();
+                });
+
+                // White glowing core (event horizon sphere)
+                const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, 28);
+                core.addColorStop(0, 'rgba(255,255,255,0.95)');
+                core.addColorStop(0.4, 'rgba(200,240,255,0.7)');
+                core.addColorStop(0.75, 'rgba(0,240,255,0.25)');
+                core.addColorStop(1, 'transparent');
+                ctx.fillStyle = core;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 28, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Dark event horizon center
+                ctx.beginPath();
+                ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+                ctx.fillStyle = '#020205';
+                ctx.fill();
+
+                // Blinking stars
+                stars.forEach(s => {
+                    s.a += s.da;
+                    if (s.a > 1 || s.a < 0.1) s.da = -s.da;
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(${s.color}, ${Math.abs(s.a)})`;
+                    ctx.fill();
+                });
+
+                // Shooting stars
+                for (let i = shooters.length - 1; i >= 0; i--) {
+                    const sh = shooters[i];
+                    sh.x += sh.vx;
+                    sh.y += sh.vy;
+                    sh.life -= 0.018;
+                    if (sh.life <= 0 || sh.x > width || sh.y > height) {
+                        shooters.splice(i, 1);
+                        continue;
+                    }
+                    const col = sh.isBlue ? '0,240,255' : '244,63,94';
+                    const grad = ctx.createLinearGradient(sh.x, sh.y, sh.x - sh.vx * 8, sh.y - sh.vy * 8);
+                    grad.addColorStop(0, `rgba(${col},${sh.life})`);
+                    grad.addColorStop(1, 'transparent');
+                    ctx.strokeStyle = grad;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(sh.x, sh.y);
+                    ctx.lineTo(sh.x - sh.vx * (sh.len / 8), sh.y - sh.vy * (sh.len / 8));
+                    ctx.stroke();
+                }
+
+                requestAnimationFrame(draw);
+            }
+            draw();
+        })();
+
+        // System App Logic
+        class ShadowSystem {
+            constructor() {
+                this.currentDate = this.getTodayDateString();
+                this.currentWorkoutDay = 1;
+                this.waterIntake = 1750;
+                this.waterGoal = 3000;
+                this.timeTab = 'clock';
+                
+                this.swTimer = null;
+                this.swElapsed = 0;
+                
+                this.cdTimer = null;
+                this.cdSeconds = 15 * 60;
+                
+                this.alarmTime = null;
+                this.alarmPeriod = 'AM';
+                this.alarmAudioCtx = null;
+                this.alarmOscillator = null;
+                this.customAlarmUrl = null;
+                this.customBgMusicUrl = null;
+                this.isAlarmPlaying = false;
+
+                // Big landscape chart state
+                this.bigPeriod = 'weekly'; // weekly | monthly | yearly
+                this.bigAnchor = new Date(this.currentDate + 'T00:00:00'); // reference date for navigation
+
+                this.defaultWorkouts = {
+                    1: [
+                        { name: "Incline Barbell Bench Press", detail: "4 sets x 8-10 reps" },
+                        { name: "Flat Dumbbell Flyes", detail: "3 sets x 12 reps" },
+                        { name: "Triceps Rope Pushdowns", detail: "4 sets x 12-15 reps" },
+                        { name: "Overhead Dumbbell Extension", detail: "3 sets x 10 reps" }
+                    ],
+                    2: [
+                        { name: "Barbell Deadlifts", detail: "4 sets x 5 reps" },
+                        { name: "Lat Pulldowns", detail: "4 sets x 10-12 reps" },
+                        { name: "Barbell Bicep Curls", detail: "4 sets x 10 reps" },
+                        { name: "Hammer Curls", detail: "3 sets x 12 reps" }
+                    ],
+                    3: [
+                        { name: "Barbell Back Squats", detail: "4 sets x 8 reps" },
+                        { name: "Leg Press", detail: "3 sets x 12 reps" },
+                        { name: "Hanging Leg Raises", detail: "4 sets x 15 reps" },
+                        { name: "Plank Hold", detail: "3 sets x 60 seconds" }
+                    ],
+                    4: [
+                        { name: "Overhead Military Press", detail: "4 sets x 8 reps" },
+                        { name: "Dumbbell Lateral Raises", detail: "4 sets x 15 reps" },
+                        { name: "Face Pulls", detail: "4 sets x 15 reps" }
+                    ],
+                    5: [
+                        { name: "Clean and Press", detail: "4 sets x 6 reps" },
+                        { name: "Dumbbell Farmers Walk", detail: "3 sets x 50 meters" },
+                        { name: "Pull-ups", detail: "4 sets x Max reps" }
+                    ],
+                    6: [
+                        { name: "Active Recovery Walk", detail: "30-45 minutes" },
+                        { name: "Full Body Mobility & Stretching", detail: "20 minutes" }
+                    ]
+                };
+
+                this.loadSavedWorkouts();
+                this.loadSavedStats();
+                this.initData();
+                this.startClock();
+
+                // Defer charts until layout is ready; never crash the whole app if Chart.js fails
+                const bootCharts = () => {
+                    try {
+                        this.initCharts();
+                        this.updateWeeklyAnalytics();
+                        this.updateBigChart();
+                        setTimeout(() => {
+                            try {
+                                this.refreshAllLiveCharts();
+                                if (this.completionChart) this.completionChart.resize();
+                                if (this.weeklyChart) this.weeklyChart.resize();
+                                if (this.bigChart) this.bigChart.resize();
+                            } catch (e2) { console.warn(e2); }
+                        }, 300);
+                    } catch (err) {
+                        console.error('Chart init error:', err);
+                    }
+                };
+                if (document.readyState === 'complete') {
+                    setTimeout(bootCharts, 80);
+                } else {
+                    window.addEventListener('load', () => setTimeout(bootCharts, 80));
+                    setTimeout(bootCharts, 450);
+                }
+            }
+
+            getTodayDateString() {
+                const now = new Date();
+                const y = now.getFullYear();
+                const m = String(now.getMonth() + 1).padStart(2, '0');
+                const d = String(now.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+
+            initData() {
+                document.getElementById('universalDatePicker').value = this.currentDate;
+                this.updateDateHeaderLabel();
+                this.loadMoodForCurrentDate();
+                this.loadJournalForCurrentDate();
+                this.loadWaterForCurrentDate();
+                this.renderQuests();
+                this.renderWorkout();
+                // charts updated after initCharts
+            }
+
+            updateDateHeaderLabel() {
+                const dateObj = new Date(this.currentDate + 'T00:00:00');
+                const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
+                document.getElementById('clockSubDate').innerText = dateObj.toLocaleDateString('en-US', options).toUpperCase();
+            }
+
+            getStorage(key, fallback) {
+                const data = localStorage.getItem(`shadow_${key}_${this.currentDate}`);
+                return data ? JSON.parse(data) : fallback;
+            }
+
+            setStorage(key, value) {
+                localStorage.setItem(`shadow_${key}_${this.currentDate}`, JSON.stringify(value));
+            }
+
+            // ---------- Quests Engine ----------
+            renderQuests() {
+                const defaults = [
+                    { id: 1, name: "Complete Organic Chemistry Namings", category: "Academic", done: true },
+                    { id: 2, name: "Solve Permutations Example 20", category: "Academic", done: false },
+                    { id: 3, name: "Drink 3000ml Water", category: "Health", done: false }
+                ];
+                let quests = this.getStorage('quests', null);
+                if (!Array.isArray(quests)) {
+                    quests = defaults;
+                    this.setStorage('quests', quests); // persist so live charts can read them
+                }
+
+                const listEl = document.getElementById('questList');
+                listEl.innerHTML = '';
+
+                let completed = 0;
+                quests.forEach(q => {
+                    if (q.done) completed++;
+
+                    const div = document.createElement('div');
+                    div.className = `p-2.5 rounded-lg border flex items-center justify-between font-mono text-xs transition ${
+                        q.done ? 'bg-black/30 border-cyan-500/20' : 'bg-black/60 border-slate-800'
+                    }`;
+                    div.innerHTML = `
+                        <div class="flex items-center gap-2 flex-grow min-w-0">
+                            <input type="checkbox" ${q.done ? 'checked' : ''} onchange="app.toggleQuest(${q.id})" class="accent-cyan-400 cursor-pointer flex-shrink-0">
+                            <span class="${q.done ? 'strike-completed' : 'text-slate-200'} truncate">${this.escapeHtml(q.name)}</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                            <span class="text-[10px] px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-400">${q.category}</span>
+                            <button type="button" onclick="app.deleteQuest(${q.id})" title="Delete quest" class="p-1 rounded border border-red-500/40 text-red-400 hover:bg-red-950/60 hover:text-red-300 transition leading-none" aria-label="Delete quest">🗑</button>
+                        </div>
+                    `;
+                    listEl.appendChild(div);
+                });
+
+                document.getElementById('questRatioText').innerText = `${completed} / ${quests.length} Completed`;
+                this.refreshAllLiveCharts();
+            }
+
+            escapeHtml(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            addQuest(e) {
+                e.preventDefault();
+                const input = document.getElementById('newQuestInput');
+                const cat = document.getElementById('questCategory').value;
+                if (!input.value.trim()) return;
+
+                const quests = this.getStorage('quests', []);
+                quests.push({
+                    id: Date.now(),
+                    name: input.value.trim(),
+                    category: cat,
+                    done: false
+                });
+
+                this.setStorage('quests', quests);
+                input.value = '';
+                this.renderQuests();
+            }
+
+            toggleQuest(id) {
+                const quests = this.getStorage('quests', []);
+                const q = quests.find(item => item.id === id);
+                if (q) {
+                    q.done = !q.done;
+                    this.setStorage('quests', quests);
+                    this.renderQuests();
+                }
+            }
+
+            deleteQuest(id) {
+                const quests = this.getStorage('quests', []);
+                const next = quests.filter(item => item.id !== id);
+                this.setStorage('quests', next);
+                this.renderQuests();
+            }
+
+            // ---------- Workout Engine ----------
+            setWorkoutDay(day) {
+                this.currentWorkoutDay = day;
+                for (let i = 1; i <= 6; i++) {
+                    const btn = document.getElementById(`wTab${i}`);
+                    if (i === day) {
+                        btn.className = "px-3 py-1.5 rounded border border-purple-500/40 bg-purple-950/60 text-purple-200";
+                    } else {
+                        btn.className = "px-3 py-1.5 rounded border border-slate-800 bg-black/40 text-slate-400 hover:text-slate-200";
+                    }
+                }
+                
+                const titles = {
+                    1: "DAY 1 // CHEST & TRICEPS PROTOCOL",
+                    2: "DAY 2 // BACK & BICEPS PROTOCOL",
+                    3: "DAY 3 // LEGS & CORE PROTOCOL",
+                    4: "DAY 4 // SHOULDERS PROTOCOL",
+                    5: "DAY 5 // FULL BODY PROTOCOL",
+                    6: "WEEKEND // RECOVERY & MOBILITY"
+                };
+                document.getElementById('workoutDayTitle').innerText = titles[day];
+                this.renderWorkout();
+            }
+
+            renderWorkout() {
+                const dayExercises = this.defaultWorkouts[this.currentWorkoutDay] || [];
+                const completed = this.getStorage(`workout_${this.currentWorkoutDay}`, []);
+
+                const list = document.getElementById('workoutExerciseList');
+                list.innerHTML = '';
+
+                dayExercises.forEach((ex, idx) => {
+                    const isDone = completed.includes(idx);
+                    const div = document.createElement('div');
+                    div.className = `p-2.5 rounded-lg border flex items-center justify-between font-mono text-xs ${
+                        isDone ? 'bg-purple-950/20 border-purple-500/30' : 'bg-black/60 border-slate-800'
+                    }`;
+                    div.innerHTML = `
+                        <div class="flex items-center gap-2 flex-grow min-w-0">
+                            <input type="checkbox" ${isDone ? 'checked' : ''} onchange="app.toggleExercise(${idx})" class="accent-purple-400 cursor-pointer flex-shrink-0">
+                            <div class="min-w-0">
+                                <div class="${isDone ? 'strike-completed' : 'text-purple-200 font-bold'} truncate">${this.escapeHtml(ex.name)}</div>
+                                <div class="text-[10px] text-slate-400">${this.escapeHtml(ex.detail)}</div>
+                            </div>
+                        </div>
+                        <button type="button" onclick="app.deleteExercise(${idx})" title="Delete exercise" class="p-1 rounded border border-red-500/40 text-red-400 hover:bg-red-950/60 hover:text-red-300 transition leading-none flex-shrink-0 ml-2" aria-label="Delete exercise">🗑</button>
+                    `;
+                    list.appendChild(div);
+                });
+                this.refreshAllLiveCharts();
+            }
+
+            toggleExercise(idx) {
+                let completed = this.getStorage(`workout_${this.currentWorkoutDay}`, []);
+                if (completed.includes(idx)) {
+                    completed = completed.filter(i => i !== idx);
+                } else {
+                    completed.push(idx);
+                }
+                this.setStorage(`workout_${this.currentWorkoutDay}`, completed);
+                this.renderWorkout();
+            }
+
+            persistCurrentWorkoutPlan() {
+                const day = this.currentWorkoutDay;
+                const exercises = this.defaultWorkouts[day] || [];
+                localStorage.setItem(`shadow_workout_plan_${day}`, JSON.stringify({
+                    title: document.getElementById('workoutDayTitle')?.innerText || '',
+                    exercises
+                }));
+            }
+
+            addExercise(e) {
+                e.preventDefault();
+                const nameEl = document.getElementById('newExerciseName');
+                const setsEl = document.getElementById('newExerciseSets');
+                const repsEl = document.getElementById('newExerciseReps');
+                const name = (nameEl?.value || '').trim();
+                if (!name) return;
+
+                const sets = Math.max(1, parseInt(setsEl?.value) || 3);
+                const reps = (repsEl?.value || '10').trim() || '10';
+                const detail = `${sets} sets x ${reps} reps`;
+
+                if (!Array.isArray(this.defaultWorkouts[this.currentWorkoutDay])) {
+                    this.defaultWorkouts[this.currentWorkoutDay] = [];
+                }
+                this.defaultWorkouts[this.currentWorkoutDay].push({ name, detail });
+                this.persistCurrentWorkoutPlan();
+
+                if (nameEl) nameEl.value = '';
+                if (setsEl) setsEl.value = '3';
+                if (repsEl) repsEl.value = '10';
+                this.renderWorkout();
+            }
+
+            deleteExercise(idx) {
+                const day = this.currentWorkoutDay;
+                const plan = this.defaultWorkouts[day] || [];
+                if (idx < 0 || idx >= plan.length) return;
+
+                plan.splice(idx, 1);
+                this.defaultWorkouts[day] = plan;
+                this.persistCurrentWorkoutPlan();
+
+                // Rebuild completion indexes after removal
+                let completed = this.getStorage(`workout_${day}`, []);
+                completed = completed
+                    .filter(i => i !== idx)
+                    .map(i => (i > idx ? i - 1 : i));
+                this.setStorage(`workout_${day}`, completed);
+                this.renderWorkout();
+            }
+
+            // ---------- Hydration Engine (local ship) ----------
+            loadWaterForCurrentDate() {
+                this.waterIntake = this.getStorage('water', 1750);
+                this.updateHydrationUI();
+            }
+
+            addWater(amount) {
+                this.waterIntake = Math.min(this.waterGoal, this.waterIntake + amount);
+                this.setStorage('water', this.waterIntake);
+                this.triggerLocalBeam();
+                this.updateHydrationUI();
+            }
+
+            resetWater() {
+                this.waterIntake = 0;
+                this.setStorage('water', 0);
+                this.updateHydrationUI();
+            }
+
+            updateHydrationUI() {
+                document.getElementById('waterText').innerText = `${this.waterIntake} / ${this.waterGoal} ml`;
+                const percentage = Math.min(100, Math.round((this.waterIntake / this.waterGoal) * 100));
+                document.getElementById('planetWaterFill').style.height = `${percentage}%`;
+            }
+
+            triggerLocalBeam() {
+                const overlay = document.getElementById('localShipOverlay');
+                if (!overlay) return;
+                overlay.classList.remove('active');
+                // force reflow
+                void overlay.offsetWidth;
+                overlay.classList.add('active');
+                setTimeout(() => {
+                    overlay.classList.remove('active');
+                }, 1300);
+            }
+
+            // ---------- Mood & Journal ----------
+            loadMoodForCurrentDate() {
+                const mood = this.getStorage('mood', '🔥 Focused');
+                document.getElementById('activeMoodDisplay').innerText = `Selected: ${mood}`;
+                this.highlightMoodButton(mood);
+            }
+
+            setMood(mood) {
+                document.getElementById('activeMoodDisplay').innerText = `Selected: ${mood}`;
+                this.setStorage('mood', mood);
+                this.highlightMoodButton(mood);
+            }
+
+            highlightMoodButton(moodText) {
+                const buttons = document.querySelectorAll('.mood-btn');
+                buttons.forEach(btn => {
+                    if (btn.title === moodText || moodText.includes(btn.innerText.trim())) {
+                        btn.classList.add('active-mood');
+                    } else {
+                        btn.classList.remove('active-mood');
+                    }
+                });
+            }
+
+            loadJournalForCurrentDate() {
+                const j = this.getStorage('journal', '');
+                document.getElementById('journalInput').value = j;
+            }
+
+            saveJournal(val) {
+                this.setStorage('journal', val);
+            }
+
+            // ---------- Audio ----------
+            handleCustomBgMusic(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    this.customBgMusicUrl = URL.createObjectURL(file);
+                    const player = document.getElementById('bgMusicPlayer');
+                    player.src = this.customBgMusicUrl;
+                    player.play();
+                    document.getElementById('bgMusicBtn').classList.add('text-cyan-400');
+                }
+            }
+
+            toggleMusic() {
+                const player = document.getElementById('bgMusicPlayer');
+                if (!player.src && !this.customBgMusicUrl) {
+                    alert("Please click 'UPLOAD AUDIO' to attach an MP3 file for background music!");
+                    return;
+                }
+                if (player.paused) {
+                    player.play();
+                    document.getElementById('bgMusicBtn').classList.add('text-cyan-400');
+                } else {
+                    player.pause();
+                    document.getElementById('bgMusicBtn').classList.remove('text-cyan-400');
+                }
+            }
+
+            setMusicVolume(vol) {
+                const player = document.getElementById('bgMusicPlayer');
+                player.volume = parseFloat(vol);
+            }
+
+            handleAlarmSoundChange(val) {
+                if (val === 'custom' && !this.customAlarmUrl) {
+                    document.getElementById('alarmFileInput').click();
+                }
+            }
+
+            handleCustomAlarmFile(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    this.customAlarmUrl = URL.createObjectURL(file);
+                    document.getElementById('alarmSoundSelect').value = 'custom';
+                    alert(`Custom Alarm Sound Loaded: ${file.name}`);
+                }
+            }
+
+            startClock() {
+                setInterval(() => {
+                    const now = new Date();
+                    document.getElementById('digitalClock').innerText = now.toLocaleTimeString();
+                    
+                    if (this.alarmTime && !this.isAlarmPlaying) {
+                        const h = String(now.getHours()).padStart(2, '0');
+                        const m = String(now.getMinutes()).padStart(2, '0');
+                        const s = String(now.getSeconds()).padStart(2, '0');
+                        const currentHMS = `${h}:${m}:${s}`;
+                        if (currentHMS === this.alarmTime) {
+                            this.triggerAlarmSound();
+                            document.getElementById('alarmStatusText').innerText = "🚨 ALARM TRIGGERED!";
+                        }
+                    }
+                }, 250);
+            }
+
+            setAlarmPeriod(period) {
+                this.alarmPeriod = period === 'PM' ? 'PM' : 'AM';
+                const amBtn = document.getElementById('alarmAmBtn');
+                const pmBtn = document.getElementById('alarmPmBtn');
+                if (this.alarmPeriod === 'AM') {
+                    if (amBtn) { amBtn.className = 'px-2 py-1 text-[10px] font-mono bg-cyan-950 text-cyan-300'; }
+                    if (pmBtn) { pmBtn.className = 'px-2 py-1 text-[10px] font-mono bg-black text-slate-400'; }
+                } else {
+                    if (amBtn) { amBtn.className = 'px-2 py-1 text-[10px] font-mono bg-black text-slate-400'; }
+                    if (pmBtn) { pmBtn.className = 'px-2 py-1 text-[10px] font-mono bg-cyan-950 text-cyan-300'; }
+                }
+            }
+
+            setAlarm() {
+                let h12 = parseInt(document.getElementById('alarmHourInput')?.value) || 12;
+                h12 = Math.max(1, Math.min(12, h12));
+                const m = Math.max(0, Math.min(59, parseInt(document.getElementById('alarmMinInput')?.value) || 0));
+                const s = Math.max(0, Math.min(59, parseInt(document.getElementById('alarmSecInput')?.value) || 0));
+                const period = this.alarmPeriod || 'AM';
+
+                // Convert 12h → 24h for internal matching
+                let h24 = h12 % 12; // 12 AM → 0, 12 PM → 12
+                if (period === 'PM') h24 += 12;
+
+                this.alarmTime = `${String(h24).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                this.isAlarmPlaying = false;
+                const display = `${h12}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} ${period}`;
+                document.getElementById('alarmStatusText').innerText = `Alarm Active for ${display}`;
+            }
+
+            triggerAlarmSound() {
+                this.isAlarmPlaying = true;
+                document.getElementById('stopAlarmBtn').classList.remove('hidden');
+
+                const soundType = document.getElementById('alarmSoundSelect').value;
+
+                if (soundType === 'custom' && this.customAlarmUrl) {
+                    const customPlayer = document.getElementById('customAlarmPlayer');
+                    customPlayer.src = this.customAlarmUrl;
+                    customPlayer.play();
+                } else {
+                    if (!this.alarmAudioCtx) {
+                        this.alarmAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    this.alarmOscillator = this.alarmAudioCtx.createOscillator();
+                    const gain = this.alarmAudioCtx.createGain();
+
+                    const freqs = { scifi: 880, bell: 523.25, alert: 1200 };
+                    this.alarmOscillator.type = soundType === 'alert' ? 'sawtooth' : 'sine';
+                    this.alarmOscillator.frequency.setValueAtTime(freqs[soundType] || 440, this.alarmAudioCtx.currentTime);
+
+                    this.alarmOscillator.connect(gain);
+                    gain.connect(this.alarmAudioCtx.destination);
+                    this.alarmOscillator.start();
+                }
+            }
+
+            stopAlarmSound() {
+                this.isAlarmPlaying = false;
+                this.alarmTime = null;
+                document.getElementById('stopAlarmBtn').classList.add('hidden');
+                document.getElementById('alarmStatusText').innerText = "No Active Alarm";
+
+                const customPlayer = document.getElementById('customAlarmPlayer');
+                customPlayer.pause();
+                customPlayer.currentTime = 0;
+
+                if (this.alarmOscillator) {
+                    this.alarmOscillator.stop();
+                    this.alarmOscillator.disconnect();
+                    this.alarmOscillator = null;
+                }
+            }
+
+            // ---------- Stopwatch / Timer ----------
+            formatStopwatch(msTotal) {
+                const h = Math.floor(msTotal / 3600000);
+                const m = Math.floor((msTotal % 3600000) / 60000);
+                const s = Math.floor((msTotal % 60000) / 1000);
+                const cs = Math.floor((msTotal % 1000) / 10);
+                return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(cs).padStart(2,'0')}`;
+            }
+
+            formatTimer(secTotal) {
+                const h = Math.floor(secTotal / 3600);
+                const m = Math.floor((secTotal % 3600) / 60);
+                const s = secTotal % 60;
+                return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+            }
+
+            startStopwatch() {
+                if (this.swTimer) return;
+                const start = Date.now() - this.swElapsed;
+                this.swTimer = setInterval(() => {
+                    this.swElapsed = Date.now() - start;
+                    document.getElementById('stopwatchDisplay').innerText = this.formatStopwatch(this.swElapsed);
+                }, 40);
+            }
+
+            pauseStopwatch() {
+                clearInterval(this.swTimer);
+                this.swTimer = null;
+            }
+
+            resetStopwatch() {
+                this.pauseStopwatch();
+                this.swElapsed = 0;
+                document.getElementById('stopwatchDisplay').innerText = "00:00:00.00";
+            }
+
+            getTimerInputSeconds() {
+                const h = Math.max(0, parseInt(document.getElementById('timerHourInput')?.value) || 0);
+                const m = Math.max(0, Math.min(59, parseInt(document.getElementById('timerMinInput')?.value) || 0));
+                const s = Math.max(0, Math.min(59, parseInt(document.getElementById('timerSecInput')?.value) || 0));
+                return h * 3600 + m * 60 + s;
+            }
+
+            startTimer() {
+                if (this.cdTimer) return;
+                if (this.cdSeconds <= 0) {
+                    this.cdSeconds = this.getTimerInputSeconds() || 15 * 60;
+                }
+                if (this.cdSeconds <= 0) return;
+                document.getElementById('timerDisplay').innerText = this.formatTimer(this.cdSeconds);
+
+                this.cdTimer = setInterval(() => {
+                    this.cdSeconds--;
+                    document.getElementById('timerDisplay').innerText = this.formatTimer(Math.max(0, this.cdSeconds));
+                    if (this.cdSeconds <= 0) {
+                        clearInterval(this.cdTimer);
+                        this.cdTimer = null;
+                        this.triggerAlarmSound();
+                    }
+                }, 1000);
+            }
+
+            pauseTimer() {
+                clearInterval(this.cdTimer);
+                this.cdTimer = null;
+            }
+
+            resetTimer() {
+                this.pauseTimer();
+                this.cdSeconds = this.getTimerInputSeconds() || 15 * 60;
+                document.getElementById('timerDisplay').innerText = this.formatTimer(this.cdSeconds);
+            }
+
+            // ---------- Date Navigation ----------
+            changeDate(days) {
+                const dateObj = new Date(this.currentDate + 'T00:00:00');
+                dateObj.setDate(dateObj.getDate() + days);
+                const y = dateObj.getFullYear();
+                const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const d = String(dateObj.getDate()).padStart(2, '0');
+                this.currentDate = `${y}-${m}-${d}`;
+                this.initData();
+            }
+
+            onDatePicked(val) {
+                if (!val) return;
+                this.currentDate = val;
+                this.initData();
+            }
+
+            jumpToToday() {
+                this.currentDate = this.getTodayDateString();
+                this.initData();
+            }
+
+            // ---------- Multi-provider API Key ----------
+            getApiConfig() {
+                try {
+                    const raw = localStorage.getItem('shadow_ai_config');
+                    if (raw) return JSON.parse(raw);
+                } catch (_) {}
+                // migrate old single-key storage
+                const oldKey = (localStorage.getItem('shadow_gemini_api_key') || '').trim();
+                if (oldKey) return { provider: 'gemini', apiKey: oldKey, model: '', baseUrl: '' };
+                return { provider: 'gemini', apiKey: '', model: '', baseUrl: '' };
+            }
+
+            getApiKey() {
+                return (this.getApiConfig().apiKey || '').trim();
+            }
+
+            onProviderChange() {
+                const prov = document.getElementById('aiProviderSelect')?.value || 'gemini';
+                const wrap = document.getElementById('customBaseUrlWrap');
+                if (wrap) wrap.style.display = prov === 'custom' ? 'flex' : 'none';
+                const modelInput = document.getElementById('aiModelInput');
+                if (modelInput && !modelInput.value) {
+                    const defaults = {
+                        gemini: 'gemini-2.0-flash',
+                        openai: 'gpt-4o-mini',
+                        anthropic: 'claude-3-5-sonnet-20241022',
+                        xai: 'grok-2-latest',
+                        custom: ''
+                    };
+                    modelInput.placeholder = defaults[prov] || 'model-name';
+                }
+            }
+
+            openApiKeyModal() {
+                const cfg = this.getApiConfig();
+                document.getElementById('geminiApiKeyInput').value = cfg.apiKey || '';
+                document.getElementById('aiProviderSelect').value = cfg.provider || 'gemini';
+                document.getElementById('aiModelInput').value = cfg.model || '';
+                document.getElementById('customBaseUrlInput').value = cfg.baseUrl || '';
+                this.onProviderChange();
+                document.getElementById('apiKeyModal').classList.remove('hidden');
+            }
+
+            closeApiKeyModal() { document.getElementById('apiKeyModal').classList.add('hidden'); }
+
+            async saveApiKey() {
+                const key = document.getElementById('geminiApiKeyInput').value.trim();
+                if (!key) return alert("Please enter an API key.");
+                const provider = document.getElementById('aiProviderSelect').value || 'gemini';
+                const model = document.getElementById('aiModelInput').value.trim();
+                const baseUrl = document.getElementById('customBaseUrlInput').value.trim();
+                const cfg = { provider, apiKey: key, model, baseUrl };
+                localStorage.setItem('shadow_ai_config', JSON.stringify(cfg));
+                // keep legacy key for compatibility
+                localStorage.setItem('shadow_gemini_api_key', key);
+
+                const button = document.querySelector('#apiKeyModal button[onclick="app.saveApiKey()"]');
+                const oldText = button?.innerText || 'SAVE & TEST CONNECTION';
+                if (button) { button.disabled = true; button.innerText = 'TESTING CONNECTION...'; }
+                try {
+                    await this.callLLM('Reply with exactly: CONNECTION_OK', {temperature:0, maxOutputTokens:20});
+                    this.closeApiKeyModal();
+                    this.toggleBeruModal();
+                    this.appendBeruMessage(`System: Connection verified with ${provider.toUpperCase()}. Beru is ready.`, 'text-emerald-400');
+                } catch (err) {
+                    alert(`Connection failed: ${err.message}`);
+                } finally {
+                    if (button) { button.disabled = false; button.innerText = oldText; }
+                }
+            }
+
+            // ---------- Beru AI ----------
+            toggleBeruModal(mode = null) {
+                const modal = document.getElementById('beruModal');
+                modal.classList.toggle('hidden');
+                if (!modal.classList.contains('hidden') && mode === 'workout') {
+                    const input = document.getElementById('beruInput');
+                    input.value = `Rewrite the current Day ${this.currentWorkoutDay} workout into a sensible, age-appropriate routine using the existing format.`;
+                    input.focus();
+                }
+            }
+
+            appendBeruMessage(text, className = 'text-purple-300 italic pl-2 border-l border-purple-500/40 mt-1') {
+                const box = document.getElementById('beruChatBox');
+                const msg = document.createElement('div');
+                msg.className = className;
+                msg.innerText = text;
+                box.appendChild(msg);
+                box.scrollTop = box.scrollHeight;
+                return msg;
+            }
+
+            getStats() {
+                let storedRank = 'S-RANK MONARCH';
+                try {
+                    const raw = localStorage.getItem('shadow_profile_stats');
+                    if (raw) {
+                        const s = JSON.parse(raw);
+                        if (s.rank) storedRank = s.rank;
+                    }
+                } catch (_) {}
+                return {
+                    rank: document.getElementById('hunterRankDisplay')?.innerText || storedRank,
+                    weight: document.getElementById('statWeight')?.innerText || '74.5 kg',
+                    bmi: document.getElementById('statBMI')?.innerText || '180cm (23.0)',
+                    exam: document.getElementById('statExam')?.innerText || '98.5th %',
+                    test: document.getElementById('statTest')?.innerText || '94/100',
+                    consistency: document.getElementById('statConsistency')?.innerText || '92%',
+                    streak: document.getElementById('statStreak')?.innerText?.replace('🔥 ','').replace(' Days','') || '14'
+                };
+            }
+
+            getAiState() {
+                return {
+                    date: this.currentDate,
+                    stats: this.getStats(),
+                    workout: {
+                        day: this.currentWorkoutDay,
+                        exercises: this.defaultWorkouts[this.currentWorkoutDay] || [],
+                        completed: this.getStorage(`workout_${this.currentWorkoutDay}`, [])
+                    },
+                    allWorkouts: this.defaultWorkouts,
+                    quests: this.getStorage('quests', []),
+                    hydration: {intakeMl:this.waterIntake, goalMl:this.waterGoal},
+                    mood: this.getStorage('mood', '🔥 Focused'),
+                    journal: this.getStorage('journal', '')
+                };
+            }
+
+            async callLLM(prompt, config = {}) {
+                const cfg = this.getApiConfig();
+                const apiKey = (cfg.apiKey || '').trim();
+                if (!apiKey) throw new Error('No API key is saved.');
+                const provider = cfg.provider || 'gemini';
+                const temperature = config.temperature ?? 0.2;
+                const maxTokens = config.maxOutputTokens ?? 4096;
+                const wantJson = !!config.responseMimeType;
+
+                if (provider === 'gemini') {
+                    const model = cfg.model || 'gemini-2.0-flash';
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+                        body: JSON.stringify({
+                            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                            generationConfig: {
+                                temperature,
+                                maxOutputTokens: maxTokens,
+                                ...(wantJson ? { responseMimeType: 'application/json' } : {})
+                            }
+                        })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data?.error?.message || `HTTP ${response.status}`);
+                    const output = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('').trim();
+                    if (!output) throw new Error(data?.promptFeedback?.blockReason ? `Request blocked: ${data.promptFeedback.blockReason}` : 'Empty response.');
+                    return output;
+                }
+
+                if (provider === 'anthropic') {
+                    const model = cfg.model || 'claude-3-5-sonnet-20241022';
+                    const response = await fetch('https://api.anthropic.com/v1/messages', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-api-key': apiKey,
+                            'anthropic-version': '2023-06-01'
+                        },
+                        body: JSON.stringify({
+                            model,
+                            max_tokens: maxTokens,
+                            temperature,
+                            messages: [{ role: 'user', content: prompt }]
+                        })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data?.error?.message || `HTTP ${response.status}`);
+                    const output = (data?.content || []).map(c => c.text || '').join('').trim();
+                    if (!output) throw new Error('Empty response from Claude.');
+                    return output;
+                }
+
+                // OpenAI, xAI Grok, and custom OpenAI-compatible endpoints
+                let base = 'https://api.openai.com/v1';
+                let defaultModel = 'gpt-4o-mini';
+                if (provider === 'xai') {
+                    base = 'https://api.x.ai/v1';
+                    defaultModel = 'grok-2-latest';
+                } else if (provider === 'custom') {
+                    base = (cfg.baseUrl || '').replace(/\/$/, '');
+                    if (!base) throw new Error('Custom provider requires a Base URL.');
+                    defaultModel = cfg.model || 'gpt-4o-mini';
+                }
+                const model = cfg.model || defaultModel;
+                const response = await fetch(`${base}/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model,
+                        messages: [{ role: 'user', content: prompt }],
+                        temperature,
+                        max_tokens: maxTokens,
+                        ...(wantJson ? { response_format: { type: 'json_object' } } : {})
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data?.error?.message || `HTTP ${response.status}`);
+                const output = data?.choices?.[0]?.message?.content?.trim();
+                if (!output) throw new Error('Empty response.');
+                return output;
+            }
+
+            // backward-compatible alias
+            async callGemini(prompt, config = {}) {
+                return this.callLLM(prompt, config);
+            }
+
+            async sendBeruMessage() {
+                const input = document.getElementById('beruInput');
+                const userQuery = input.value.trim();
+                if (!userQuery) return;
+                this.appendBeruMessage(`My Monarch: ${userQuery}`, 'text-cyan-300 font-bold mt-2');
+                input.value = '';
+
+                if (!this.getApiKey()) {
+                    this.appendBeruMessage("Beru: No API key is saved. Open API KEY, save a key, and let the connection test run.", 'text-amber-400 italic pl-2 border-l border-amber-500/40 mt-1');
+                    return;
+                }
+
+                const loadingMsg = this.appendBeruMessage('Beru is consulting the Shadow Realm and preparing authorized app edits...', 'text-purple-400 italic pl-2 border-l border-purple-500/40 mt-1 animate-pulse');
+                const prompt = `
+You are Beru, the app-control AI for the Shadow Monarch dashboard.
+You may directly edit ONLY the application state described below. Do not execute JavaScript,
+HTML, shell commands, browser automation, or arbitrary code. Do not claim to have changed
+anything unless an action is included in your JSON response.
+
+Return ONLY valid JSON:
+{"message":"short helpful reply","actions":[
+{"type":"set_stats","stats":{"rank":"...","weight":"...","bmi":"...","exam":"...","test":"...","consistency":"...","streak":"..."}},
+{"type":"set_workout","day":1,"title":"...","exercises":[{"name":"...","detail":"..."}]},
+{"type":"set_workout_done","day":1,"indexes":[0,2]},
+{"type":"add_quest","name":"...","category":"Academic|Health|System|Mindset"},
+{"type":"update_quest","id":123,"name":"...","category":"Academic|Health|System|Mindset","done":true},
+{"type":"delete_quest","id":123},
+{"type":"set_water","intakeMl":1500},
+{"type":"set_mood","mood":"🔥 Focused"},
+{"type":"set_journal","text":"..."},
+{"type":"set_date","date":"YYYY-MM-DD"}]}
+Use [] when no edit is needed. Multiple actions are allowed. Only use these action types.
+Keep workout changes sensible and age-appropriate; do not prescribe extreme volume, unsafe training, or weight-loss targets.
+The user wants control of this app's state, not unrestricted control of the computer or unrelated websites.
+
+CURRENT APP STATE:
+${JSON.stringify(this.getAiState())}
+
+USER COMMAND:
+${userQuery}`;
+
+                try {
+                    const raw = await this.callGemini(prompt, {temperature:0.15,maxOutputTokens:6000,responseMimeType:'application/json'});
+                    loadingMsg.remove();
+                    const result = JSON.parse(raw.replace(/^```json\s*/i,'').replace(/\s*```$/i,'').trim());
+                    const actions = Array.isArray(result.actions) ? result.actions : [];
+                    const results = [];
+                    for (const action of actions) {
+                        try { results.push(this.applyAiAction(action)); }
+                        catch (e) { results.push(`Skipped ${action?.type || 'unknown'}: ${e.message}`); }
+                    }
+                    if (actions.length) {
+                        this.renderQuests(); this.renderWorkout(); this.updateWeeklyAnalytics();
+                        this.loadMoodForCurrentDate(); this.loadJournalForCurrentDate(); this.loadWaterForCurrentDate();
+                        this.updateBigChart();
+                    }
+                    this.appendBeruMessage(`Beru: ${result.message || 'Command processed.'}${results.length ? '\n'+results.join('\n') : ''}`);
+                } catch (err) {
+                    loadingMsg.remove();
+                    this.appendBeruMessage(`Beru: Request failed — ${err.message}`, 'text-red-400 italic pl-2 border-l border-red-500/40 mt-1');
+                    console.error('AI error:', err);
+                }
+            }
+
+            applyAiAction(action) {
+                if (!action || typeof action.type !== 'string') throw new Error('Invalid action.');
+                switch (action.type) {
+                    case 'set_stats': {
+                        const s=action.stats||{}, ids={rank:'hunterRankDisplay',weight:'statWeight',bmi:'statBMI',exam:'statExam',test:'statTest',consistency:'statConsistency'};
+                        for (const [k,id] of Object.entries(ids)) {
+                            if (s[k]!==undefined) {
+                                const el = document.getElementById(id);
+                                if (el) el.innerText=String(s[k]);
+                            }
+                        }
+                        if (s.streak!==undefined) {
+                            const el = document.getElementById('statStreak');
+                            if (el) el.innerText=`🔥 ${String(s.streak).replace('🔥 ','').replace(' Days','')} Days`;
+                        }
+                        localStorage.setItem('shadow_profile_stats',JSON.stringify(this.getStats()));
+                        return '✓ Stats updated';
+                    }
+                    case 'set_workout': {
+                        const day=Number(action.day);
+                        if(!Number.isInteger(day)||day<1||day>6) throw new Error('Workout day must be 1-6.');
+                        const exercises=(Array.isArray(action.exercises)?action.exercises:[]).map(ex=>({name:String(ex.name||'').trim(),detail:String(ex.detail||'').trim()})).filter(ex=>ex.name);
+                        if(!exercises.length) throw new Error('Workout needs at least one exercise.');
+                        this.defaultWorkouts[day]=exercises;
+                        localStorage.setItem(`shadow_workout_plan_${day}`,JSON.stringify({title:String(action.title||''),exercises}));
+                        if(day===this.currentWorkoutDay && action.title) document.getElementById('workoutDayTitle').innerText=action.title;
+                        return `✓ Day ${day} workout updated`;
+                    }
+                    case 'set_workout_done': {
+                        const day=Number(action.day), indexes=Array.isArray(action.indexes)?action.indexes.map(Number).filter(Number.isInteger):[];
+                        localStorage.setItem(`shadow_workout_${day}_${this.currentDate}`,JSON.stringify(indexes));
+                        if(day===this.currentWorkoutDay) this.renderWorkout();
+                        return `✓ Day ${day} completion updated`;
+                    }
+                    case 'add_quest': {
+                        const name=String(action.name||'').trim(); if(!name) throw new Error('Quest name is empty.');
+                        const allowed=['Academic','Health','System','Mindset'], category=allowed.includes(action.category)?action.category:'System';
+                        const quests=this.getStorage('quests',[]); quests.push({id:Date.now()+Math.floor(Math.random()*1000),name,category,done:false}); this.setStorage('quests',quests);
+                        return '✓ Quest added';
+                    }
+                    case 'update_quest': {
+                        const quests=this.getStorage('quests',[]), q=quests.find(x=>String(x.id)===String(action.id));
+                        if(!q) throw new Error(`Quest ${action.id} was not found.`);
+                        if(action.name!==undefined) q.name=String(action.name);
+                        if(action.category!==undefined && ['Academic','Health','System','Mindset'].includes(action.category)) q.category=action.category;
+                        if(action.done!==undefined) q.done=Boolean(action.done);
+                        this.setStorage('quests',quests); return `✓ Quest ${action.id} updated`;
+                    }
+                    case 'delete_quest': {
+                        const quests=this.getStorage('quests',[]), next=quests.filter(x=>String(x.id)!==String(action.id));
+                        if(next.length===quests.length) throw new Error(`Quest ${action.id} was not found.`);
+                        this.setStorage('quests',next); return `✓ Quest ${action.id} deleted`;
+                    }
+                    case 'set_water': {
+                        const amount=Math.max(0,Math.round(Number(action.intakeMl))); if(!Number.isFinite(amount)) throw new Error('Invalid water amount.');
+                        this.waterIntake=Math.min(this.waterGoal,amount); this.setStorage('water',this.waterIntake); this.updateHydrationUI(); return `✓ Hydration set to ${this.waterIntake} ml`;
+                    }
+                    case 'set_mood': this.setMood(String(action.mood||'😐 Neutral')); return '✓ Mood updated';
+                    case 'set_journal': this.setStorage('journal',String(action.text||'')); document.getElementById('journalInput').value=String(action.text||''); return '✓ Journal updated';
+                    case 'set_date':
+                        if(!/^\d{4}-\d{2}-\d{2}$/.test(String(action.date))) throw new Error('Invalid date.');
+                        this.currentDate=String(action.date); this.initData(); return `✓ Date changed to ${this.currentDate}`;
+                    default: throw new Error(`Unsupported action: ${action.type}`);
+                }
+            }
+
+            loadSavedWorkouts() {
+                for(let day=1;day<=6;day++){
+                    const raw=localStorage.getItem(`shadow_workout_plan_${day}`);
+                    if(!raw) continue;
+                    try { const saved=JSON.parse(raw); if(Array.isArray(saved.exercises)&&saved.exercises.length) this.defaultWorkouts[day]=saved.exercises; } catch(_){}
+                }
+            }
+
+            loadSavedStats() {
+                const raw=localStorage.getItem('shadow_profile_stats');
+                if(!raw) return;
+                try {
+                    const s=JSON.parse(raw);
+                    const setText = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.innerText = val; };
+                    setText('hunterRankDisplay', s.rank);
+                    setText('statWeight', s.weight);
+                    setText('statBMI', s.bmi);
+                    setText('statExam', s.exam);
+                    setText('statTest', s.test);
+                    setText('statConsistency', s.consistency);
+                    if (s.streak) setText('statStreak', `🔥 ${String(s.streak).replace('🔥 ','').replace(' Days','')} Days`);
+                } catch(_){}
+            }
+
+            // ---------- Stats Modal ----------
+            openStatsModal() {
+                const s=this.getStats();
+                document.getElementById('editRank').value=s.rank; document.getElementById('editWeight').value=s.weight;
+                document.getElementById('editBMI').value=s.bmi; document.getElementById('editExam').value=s.exam;
+                document.getElementById('editTest').value=s.test; document.getElementById('editConsistency').value=s.consistency;
+                document.getElementById('editStreak').value=s.streak;
+                document.getElementById('statsModal').classList.remove('hidden');
+            }
+
+            closeStatsModal() { document.getElementById('statsModal').classList.add('hidden'); }
+
+            saveStats() {
+                const stats={rank:document.getElementById('editRank').value,weight:document.getElementById('editWeight').value,bmi:document.getElementById('editBMI').value,exam:document.getElementById('editExam').value,test:document.getElementById('editTest').value,consistency:document.getElementById('editConsistency').value,streak:document.getElementById('editStreak').value};
+                const setText = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+                setText('hunterRankDisplay', stats.rank);
+                setText('statWeight', stats.weight);
+                setText('statBMI', stats.bmi);
+                setText('statExam', stats.exam);
+                setText('statTest', stats.test);
+                setText('statConsistency', stats.consistency);
+                setText('statStreak', `🔥 ${stats.streak.replace('🔥 ','').replace(' Days','')} Days`);
+                localStorage.setItem('shadow_profile_stats',JSON.stringify(stats)); this.closeStatsModal();
+            }
+
+            openSettings() {
+                alert('System Settings panel — coming in a future update.');
+            }
+
+            // ---------- Time Suite ----------
+            setTimeTab(tab) {
+                this.timeTab = tab;
+                const map = { clock: 'Clock', stopwatch: 'SW', timer: 'Timer' };
+                ['Clock', 'SW', 'Timer'].forEach(t => {
+                    const el = document.getElementById(`timeSuite${t}`);
+                    const btn = document.getElementById(`timeTab${t}`);
+                    if (!el || !btn) return;
+                    if (map[tab] === t) {
+                        el.classList.remove('hidden');
+                        el.classList.add('flex');
+                        btn.className = "px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40";
+                    } else {
+                        el.classList.add('hidden');
+                        el.classList.remove('flex');
+                        btn.className = "px-2 py-0.5 rounded bg-black text-slate-400";
+                    }
+                });
+            }
+
+            // ---------- Charts ----------
+            initCharts() {
+                if (typeof Chart === 'undefined') {
+                    console.error('Chart.js not loaded — graphs disabled, rest of app still works.');
+                    return;
+                }
+
+                try { if (this.completionChart) this.completionChart.destroy(); } catch (_) {}
+                try { if (this.weeklyChart) this.weeklyChart.destroy(); } catch (_) {}
+                try { if (this.bigChart) this.bigChart.destroy(); } catch (_) {}
+
+                const c1 = document.getElementById('completionChart');
+                const c2 = document.getElementById('weeklyChart');
+                const c3 = document.getElementById('bigLandscapeChart');
+                if (!c1 || !c2 || !c3) {
+                    console.error('Chart canvas elements missing');
+                    return;
+                }
+
+                // Dual concentric rings:
+                // Dataset 0 (outer) = Workout red | Dataset 1 (inner) = Quests blue
+                this.completionChart = new Chart(c1.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Done', 'Left'],
+                        datasets: [
+                            {
+                                label: 'Workout',
+                                data: [0, 1],
+                                backgroundColor: ['#FFEE00', 'rgba(51, 65, 85, 0.85)'],
+                                borderColor: ['#FFE600', 'rgba(71, 85, 105, 0.6)'],
+                                borderWidth: 1,
+                                weight: 1.15
+                            },
+                            {
+                                label: 'Quests',
+                                data: [0, 1],
+                                backgroundColor: ['#00B4FF', 'rgba(51, 65, 85, 0.85)'],
+                                borderColor: ['#33C4FF', 'rgba(71, 85, 105, 0.6)'],
+                                borderWidth: 1,
+                                weight: 0.85
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false }, tooltip: { enabled: true } },
+                        cutout: '55%',
+                        animation: { duration: 450 }
+                    }
+                });
+
+                // Dual line (this week): blue quests, red workout
+                this.weeklyChart = new Chart(c2.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                        datasets: [
+                            {
+                                label: 'Quests %',
+                                data: [0, 0, 0, 0, 0, 0, 0],
+                                borderColor: '#00B4FF',
+                                backgroundColor: 'rgba(0, 180, 255, 0.15)',
+                                fill: true,
+                                tension: 0.35,
+                                pointBackgroundColor: '#00B4FF',
+                                pointRadius: 3,
+                                borderWidth: 2
+                            },
+                            {
+                                label: 'Workout %',
+                                data: [0, 0, 0, 0, 0, 0, 0],
+                                borderColor: '#FFEE00',
+                                backgroundColor: 'rgba(255, 238, 0, 0.18)',
+                                fill: true,
+                                tension: 0.35,
+                                pointBackgroundColor: '#FFEE00',
+                                pointRadius: 3,
+                                borderWidth: 2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } },
+                            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } }, min: 0, max: 100 }
+                        },
+                        animation: { duration: 400 }
+                    }
+                });
+
+                // Big landscape dual-line chart
+                this.bigChart = new Chart(c3.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                        datasets: [
+                            {
+                                label: 'Quest Completion %',
+                                data: [0, 0, 0, 0, 0, 0, 0],
+                                borderColor: '#00B4FF',
+                                backgroundColor: 'rgba(0, 180, 255, 0.15)',
+                                fill: true,
+                                tension: 0.3,
+                                pointBackgroundColor: '#00B4FF',
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
+                                borderWidth: 2.5
+                            },
+                            {
+                                label: 'Workout Completion %',
+                                data: [0, 0, 0, 0, 0, 0, 0],
+                                borderColor: '#FFEE00',
+                                backgroundColor: 'rgba(255, 238, 0, 0.18)',
+                                fill: true,
+                                tension: 0.3,
+                                pointBackgroundColor: '#FFEE00',
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
+                                borderWidth: 2.5
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(15,15,25,0.95)',
+                                titleColor: '#e2e8f0',
+                                bodyColor: '#94a3b8',
+                                borderColor: 'rgba(0,240,255,0.3)',
+                                borderWidth: 1
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: 'rgba(255,255,255,0.04)' },
+                                ticks: { color: '#94a3b8', font: { size: 11, family: 'monospace' }, maxRotation: 0 }
+                            },
+                            y: {
+                                grid: { color: 'rgba(255,255,255,0.06)' },
+                                ticks: { color: '#64748b', font: { size: 10 }, callback: v => v + '%' },
+                                min: 0,
+                                max: 100
+                            }
+                        },
+                        animation: { duration: 500 }
+                    }
+                });
+
+                setTimeout(() => {
+                    try { if (this.completionChart) this.completionChart.resize(); } catch (_) {}
+                    try { if (this.weeklyChart) this.weeklyChart.resize(); } catch (_) {}
+                    try { if (this.bigChart) this.bigChart.resize(); } catch (_) {}
+                }, 100);
+
+                this.refreshAllLiveCharts();
+            }
+
+            // Get today's workout completion for current workout day plan
+            getTodayWorkoutStats() {
+                const plan = this.defaultWorkouts[this.currentWorkoutDay] || [];
+                const total = plan.length;
+                const completed = this.getStorage(`workout_${this.currentWorkoutDay}`, []);
+                const done = Array.isArray(completed) ? completed.length : 0;
+                return { done, total };
+            }
+
+            // Update dual-ring + center labels from current quest + workout state
+            refreshAllLiveCharts() {
+                try {
+                    const quests = this.getStorage('quests', []);
+                    const qDone = quests.filter(q => q.done).length;
+                    const qTotal = quests.length;
+                    const w = this.getTodayWorkoutStats();
+                    this.updateCharts(qDone, qTotal, w.done, w.total);
+                    this.updateWeeklyAnalytics();
+                    this.updateBigChart();
+                } catch (e) {
+                    console.warn('refreshAllLiveCharts:', e);
+                }
+            }
+
+            updateCharts(qDone, qTotal, wDone, wTotal) {
+                qDone = Number(qDone) || 0;
+                qTotal = Number(qTotal) || 0;
+                if (wDone === undefined || wTotal === undefined) {
+                    const w = this.getTodayWorkoutStats();
+                    wDone = w.done; wTotal = w.total;
+                }
+                wDone = Number(wDone) || 0;
+                wTotal = Number(wTotal) || 0;
+
+                const qPct = qTotal > 0 ? Math.round((qDone / qTotal) * 100) : 0;
+                const wPct = wTotal > 0 ? Math.round((wDone / wTotal) * 100) : 0;
+                const label = document.getElementById('completionCenterLabel');
+                if (label) {
+                    label.innerHTML =
+                        `<span class="text-[10px] font-mono font-bold leading-tight" style="color:#00B4FF;">Q ${qPct}%</span>` +
+                        `<span class="text-[10px] font-mono font-bold leading-tight" style="color:#FFEE00;">W ${wPct}%</span>`;
+                }
+
+                if (!this.completionChart) return;
+                // Outer ring (dataset 0) = Workout
+                this.completionChart.data.datasets[0].data = wTotal > 0 ? [wDone, Math.max(0, wTotal - wDone)] : [0, 1];
+                // Inner ring (dataset 1) = Quests
+                this.completionChart.data.datasets[1].data = qTotal > 0 ? [qDone, Math.max(0, qTotal - qDone)] : [0, 1];
+                this.completionChart.update();
+            }
+
+            getQuestPctForDate(dateStr) {
+                const raw = localStorage.getItem(`shadow_quests_${dateStr}`);
+                if (!raw) return 0;
+                try {
+                    const quests = JSON.parse(raw);
+                    if (!Array.isArray(quests) || quests.length === 0) return 0;
+                    const done = quests.filter(q => q.done).length;
+                    return Math.round((done / quests.length) * 100);
+                } catch (_) { return 0; }
+            }
+
+            getWorkoutPctForDate(dateStr) {
+                let totalDone = 0;
+                let totalEx = 0;
+                let anyData = false;
+                for (let day = 1; day <= 6; day++) {
+                    const plan = this.defaultWorkouts[day] || [];
+                    if (plan.length === 0) continue;
+                    const raw = localStorage.getItem(`shadow_workout_${day}_${dateStr}`);
+                    if (!raw) continue;
+                    let completed = [];
+                    try { completed = JSON.parse(raw); } catch (_) { continue; }
+                    if (!Array.isArray(completed)) continue;
+                    anyData = true;
+                    totalEx += plan.length;
+                    totalDone += completed.length;
+                }
+                // If no workout logged that day, return 0
+                if (!anyData || totalEx === 0) return 0;
+                return Math.round((totalDone / totalEx) * 100);
+            }
+
+            updateWeeklyAnalytics() {
+                if (!this.weeklyChart) return;
+                const baseDate = new Date(this.currentDate + 'T00:00:00');
+                const dayOfWeek = baseDate.getDay();
+                const distanceToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                const monday = new Date(baseDate);
+                monday.setDate(baseDate.getDate() + distanceToMon);
+
+                const questData = [];
+                const workoutData = [];
+                for (let i = 0; i < 7; i++) {
+                    const d = new Date(monday);
+                    d.setDate(monday.getDate() + i);
+                    const keyDate = this.formatDate(d);
+                    questData.push(this.getQuestPctForDate(keyDate));
+                    workoutData.push(this.getWorkoutPctForDate(keyDate));
+                }
+
+                this.weeklyChart.data.datasets[0].data = questData;
+                this.weeklyChart.data.datasets[1].data = workoutData;
+                this.weeklyChart.update();
+            }
+
+            formatDate(d) {
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
+            }
+
+            // ---------- Big Landscape Chart Logic ----------
+            setBigPeriod(period) {
+                this.bigPeriod = period;
+                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                const map = { weekly: 'periodWeekly', monthly: 'periodMonthly', yearly: 'periodYearly' };
+                const el = document.getElementById(map[period]);
+                if (el) el.classList.add('active');
+                // Reset anchor to current date when switching mode
+                this.bigAnchor = new Date(this.currentDate + 'T00:00:00');
+                this.updateBigChart();
+            }
+
+            shiftBigPeriod(dir) {
+                const d = new Date(this.bigAnchor);
+                if (this.bigPeriod === 'weekly') {
+                    d.setDate(d.getDate() + (dir * 7));
+                } else if (this.bigPeriod === 'monthly') {
+                    d.setMonth(d.getMonth() + dir);
+                } else {
+                    d.setFullYear(d.getFullYear() + dir);
+                }
+                this.bigAnchor = d;
+                this.updateBigChart();
+            }
+
+            updateBigChart() {
+                if (!this.bigChart || typeof Chart === 'undefined') return;
+
+                let labels = [];
+                let questData = [];
+                let workoutData = [];
+                let labelText = '';
+
+                if (this.bigPeriod === 'weekly') {
+                    const base = new Date(this.bigAnchor);
+                    const dayOfWeek = base.getDay();
+                    const distanceToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                    const monday = new Date(base);
+                    monday.setDate(base.getDate() + distanceToMon);
+
+                    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                    for (let i = 0; i < 7; i++) {
+                        const d = new Date(monday);
+                        d.setDate(monday.getDate() + i);
+                        labels.push(dayNames[i]);
+                        const key = this.formatDate(d);
+                        questData.push(this.getQuestPctForDate(key));
+                        workoutData.push(this.getWorkoutPctForDate(key));
+                    }
+                    const sunday = new Date(monday);
+                    sunday.setDate(monday.getDate() + 6);
+                    const opts = { month: 'short', day: '2-digit', year: 'numeric' };
+                    labelText = `WEEK OF ${monday.toLocaleDateString('en-US', opts).toUpperCase()} – ${sunday.toLocaleDateString('en-US', opts).toUpperCase()}`;
+                }
+                else if (this.bigPeriod === 'monthly') {
+                    const year = this.bigAnchor.getFullYear();
+                    const month = this.bigAnchor.getMonth();
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const d = new Date(year, month, day);
+                        labels.push(String(day));
+                        const key = this.formatDate(d);
+                        questData.push(this.getQuestPctForDate(key));
+                        workoutData.push(this.getWorkoutPctForDate(key));
+                    }
+                    const monthName = this.bigAnchor.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+                    labelText = monthName;
+                }
+                else { // yearly
+                    const year = this.bigAnchor.getFullYear();
+                    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    for (let m = 0; m < 12; m++) {
+                        labels.push(monthNames[m]);
+                        // Average over the days of the month
+                        const daysInMonth = new Date(year, m + 1, 0).getDate();
+                        let qSum = 0, wSum = 0, count = 0;
+                        for (let day = 1; day <= daysInMonth; day++) {
+                            const key = this.formatDate(new Date(year, m, day));
+                            qSum += this.getQuestPctForDate(key);
+                            wSum += this.getWorkoutPctForDate(key);
+                            count++;
+                        }
+                        questData.push(count ? Math.round(qSum / count) : 0);
+                        workoutData.push(count ? Math.round(wSum / count) : 0);
+                    }
+                    labelText = `YEAR ${year}`;
+                }
+
+                document.getElementById('bigPeriodLabel').innerText = labelText;
+
+                this.bigChart.data.labels = labels;
+                this.bigChart.data.datasets[0].data = questData;
+                this.bigChart.data.datasets[1].data = workoutData;
+                this.bigChart.update();
+            }
+        }
+
+        let app;
+        function bootApp() {
+            try {
+                app = new ShadowSystem();
+            } catch (err) {
+                console.error('ShadowSystem failed to start:', err);
+                // Still expose a minimal stub so onclick handlers don't throw ReferenceError
+                app = app || {
+                    toggleBeruModal() {}, openApiKeyModal() {}, openSettings() {},
+                    changeDate() {}, onDatePicked() {}, jumpToToday() {},
+                    addWater() {}, resetWater() {}, setMood() {}, saveJournal() {},
+                    addQuest() {}, toggleQuest() {}, deleteQuest() {}, setWorkoutDay() {}, toggleExercise() {},
+                    addExercise() {}, deleteExercise() {},
+                    setTimeTab() {}, setAlarm() {}, setAlarmPeriod() {}, stopAlarmSound() {},
+                    startStopwatch() {}, pauseStopwatch() {}, resetStopwatch() {},
+                    startTimer() {}, pauseTimer() {}, resetTimer() {}, toggleMusic() {}, setMusicVolume() {},
+                    onProviderChange() {},
+                    handleCustomBgMusic() {}, handleCustomAlarmFile() {}, handleAlarmSoundChange() {},
+                    openStatsModal() {}, closeStatsModal() {}, saveStats() {},
+                    closeApiKeyModal() {}, saveApiKey() {}, sendBeruMessage() {},
+                    setBigPeriod() {}, shiftBigPeriod() {}
+                };
+            }
+            try {
+                if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+            } catch (e) {
+                console.warn('Lucide icons failed:', e);
+            }
+        }
+        if (document.readyState === 'loading') {
+            window.addEventListener('DOMContentLoaded', bootApp);
+        } else {
+            bootApp();
+        }
+    </script>
+</body>
+</html>

@@ -1,10 +1,5 @@
 {
-  "version": 2,
-  "cleanUrls": true,
   "rewrites": [
-    {
-      "source": "/",
-      "destination": "/shadow-monarch v2.html"
-    }
+    { "source": "/(.*)", "destination": "/shadow-monarch v2.html" }
   ]
 }
